@@ -6,25 +6,72 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+library(dplyr)
+
+
+options(stringsAsFactors = FALSE)
+Sys.setlocale('LC_ALL', 'C')
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Outline
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+In this document I would also like to show different approaches and compare them in order to decide how to develop the final application.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+So far I have used the following references:
 
-```{r cars}
-summary(cars)
+- [Text Mining Infrastructure in R](http://www.stat.wvu.edu/~jharner/courses/dsci503/docs/tm.pdf) 
+- [Text Mining in Practice with R](https://www.wiley.com/en-us/Text+Mining+in+Practice+with+R-p-9781119282013)
+- [Text Mining with R](https://www.tidytextmining.com/)
+- [Staford Natural Language Programming](https://web.stanford.edu/~jurafsky/NLPCourseraSlides.html)
+
+What I need to show for this project is:
+
+- How I downloaded the dataset
+- How I sampled the dataset and why
+- How I tokenized, cleaned and transformed the dataset
+- Data visualization for word frequency
+
+## Downloading and the Dataset
+
+The dataset has been downloaded from the follwing link:
+
+- `https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip`
+
+unzipped and stored in a `Data` subfolder. For the project and the application I will focus on the `en_US` language. Since in `R` is not possible to extract information about a `txt` file without opening and storing it in memory, I prefered to extract the first information about the files using [cygwin](https://www.cygwin.com/) and running the following `Unix` command for counting lines and words:
+
+```
+$ wc -lwmc en_US.blogs.txt en_US.twitter.txt en_US.news.txt > summary.txt
 ```
 
-## Including Plots
+The results are summarised in the following table
 
-You can also embed plots, for example:
+```{r, echo=FALSE, warning=FALSE}
+df.summary <- read.table('./en_US/summary.txt', 
+                 col.names = c("lines",
+                               "words",
+                               "characters",
+                               "bytes",
+                               "source"),
+                 nrows = 3)
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+df.summary <- mutate(df.summary, 
+             Mb = round(bytes*0.00000095367432,2))
+    
+df.summary <- df.summary[,c(5,1,2,3,6)]
+
+knitr::kable(df.summary)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+As expected, the `en_US.blogs.txt` file contains more words althoug less lines, meaning that the lines themselves are longer. The idea is to open the files separately, sampling a preset number of lines, delete the object containing the whole file in order to save memory space.
+
+
+## Bags of words approach
+
+*Bags of words* treats every word or group of words (called ***n-grams***) as a unique feature of the document. Word order and grammatical word type are not captured ina bag of words analysis. The Bags of Words fits nicely into Machine Learning frameworws because it provides an ordanized matrix of observations and attributes. These are called ***Document Term Matrices*** (*DTM*) or ***Term Document Matrices*** (*TDM*) if we deal with the trasposition.
+
+In DTM each row represent a document of individual corpus. DTM columns are made of words or word groups; in TDM the word or word groups are the rows while the documents are the columns.
+
+At its heart, bag of words methodology text mining means taking character strings and manipulating them in order for the unstructured to become stricutred into the DTM or TMD matrices. 
+
+For text mining, we are aggregating strings to distill meaning, so treating the strings as individual factors makes aggregation impossible (`stringAsFactor=F`). 
