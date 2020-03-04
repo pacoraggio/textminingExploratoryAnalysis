@@ -10,7 +10,7 @@ createSampledText <- function(original, sample.percentage = 0.5)
         return(NULL)
     } 
     f <- file(original, "rb")
-    original.text <- readLines(f)
+    original.text <- readLines(f, encoding = "UTF-8")
     close(f)
     n.lines <- sort(sample(1:length(original.text),
                            as.integer(length(original.text) * sample.percentage),
@@ -18,7 +18,6 @@ createSampledText <- function(original, sample.percentage = 0.5)
     sampled.text <- original.text[n.lines]
     return(sampled.text)
 }
-
 
 createSampledDfText <- function(original, sample.percentage = 0.5)
 {
@@ -28,7 +27,7 @@ createSampledDfText <- function(original, sample.percentage = 0.5)
         return(NULL)
     } 
     f <- file(original, "rb")
-    original.text <- readLines(f)
+    original.text <- readLines(f, encoding = "UTF-8", skipNul = TRUE)
     close(f)
     n.lines <- sort(sample(1:length(original.text),
                            as.integer(length(original.text) * sample.percentage),
