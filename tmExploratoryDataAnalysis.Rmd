@@ -74,4 +74,6 @@ In DTM each row represent a document of individual corpus. DTM columns are made 
 
 At its heart, bag of words methodology text mining means taking character strings and manipulating them in order for the unstructured to become stricutred into the DTM or TMD matrices. 
 
-For text mining, we are aggregating strings to distill meaning, so treating the strings as individual factors makes aggregation impossible (`stringAsFactor=F`). 
+For text mining, we are aggregating strings to distill meaning, so treating the strings as individual factors makes aggregation impossible (`stringAsFactor=F`).
+
+As for this part of the project, I am sampling the same quantity ($1\%$ of each dataset) for all dataset. This enable me to make some assumption about the word frequencies for the different dataset that are omogeneous but as for the final goal that is build a predective tool working for different dataset, I would make different consideration about the percentage of information extracted from the different dataset.
