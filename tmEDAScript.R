@@ -17,6 +17,23 @@ library(tictoc)
 
 source("createSampledText.R")
 source("plotcustomf.R")
+source("cleanCorpus.R")
+source("wordfrequency.R")
+
+df.summary <- read.table('./en_US/summary.txt', 
+                         col.names = c("lines",
+                                       "words",
+                                       "characters",
+                                       "bytes",
+                                       "source"),
+                         nrows = 3)
+
+df.summary <- mutate(df.summary, 
+                     Mb = round(bytes*0.00000095367432,2))
+
+df.summary <- df.summary[,c(5,1,2,3,4)]
+df.summary$words/df.summary$lines
+
 a1 <- read.table('./en_US/summary.txt', 
                  col.names = c("lines",
                                "words",
@@ -52,34 +69,49 @@ df.twitter <- data.frame(n_row = 1:length(sample.twitter),
 
 tic()
 
-df.news <- createSampledDfText('./en_US/en_US.news.txt', 0.01)
-df.blogs <- createSampledDfText('./en_US/en_US.blogs.txt', 0.01)
-df.twitter <- createSampledDfText('./en_US/en_US.twitter.txt', 0.01)
 
+df.news <- createSampledDfText('./en_US/en_US.news.txt', 0.01, book = "news")
+df.blogs <- createSampledDfText('./en_US/en_US.blogs.txt', 0.01, book = "blogs")
+df.twitter <- createSampledDfText('./en_US/en_US.twitter.txt', 0.015, book = "twitter")
 
+df.complete <- rbind(df.news, df.blogs, df.twitter)
+df.complete$doc_id <- 1:nrow(df.complete)
+
+save(df.news, file = "dfnews.RData")
+save(df.blogs, file = "dfblogs.RData")
+save(df.twitter, file = "dftwitter.RData")
+save(df.complete, file = "dfcomplete.RData")
+
+# sum(nchar(df.news$text))
+# sum(nchar(df.blogs$text))
+# sum(nchar(df.twitter$text))
+
+names(df.news)
 ## Cleaning Text
-clean.text <- function(lines)
-{
-    lines <- tolower(lines)
-    lines <- gsub("[[:punct:]]", "", lines) # remove punctuation
-    lines <- gsub("[[:digit:]]", "", lines) # remove digits
-    lines <- gsub("\\s+", " ", str_trim(lines)) # remove extra whitespaces
-    return(lines)
-}
 
 df.twitter$text <- clean.text(df.twitter$text)
 df.news$text <- clean.text(df.news$text)
 df.blogs$text <- clean.text(df.blogs$text)
+df.complete$text <- clean.text(df.complete$text)
 
 # a2 <- grep("[^a-zA-Z]will",df.news$text, value = TRUE)
-
-mstopwords <- get_stopwords(language = "en", source = "snowball")
+# mstopwords <- get_stopwords(language = "en", source = "snowball")
 
 library(tm)
 custom.stopwords <- data.frame(word = stopwords('english'),
                                lexicon = "mylexicon")
 
 head(custom.stopwords)
+
+news.wf <- word.frequency(df.corpus = df.news, remove.stopwords = TRUE)
+blogs.wf <- word.frequency(df.corpus = df.blogs, remove.stopwords = TRUE)
+twitter.wf <- word.frequency(df.corpus = df.twitter, remove.stopwords = TRUE)
+complete.wf <- word.frequency(df.corpus = df.complete, remove.stopwords = TRUE)
+
+windows()
+plotbar.wf(complete.wf, "Total Word Frequency")
+
+head(a1, n = 10)
 
 tidyNews <- df.news %>% 
     unnest_tokens(word, text) %>%
