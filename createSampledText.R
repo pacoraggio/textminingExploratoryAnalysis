@@ -4,6 +4,7 @@
 
 createSampledText <- function(original, sample.percentage = 0.5)
 {
+    set.seed(1)
     if(!file.exists(original))
     {
         print("no file")
@@ -19,8 +20,9 @@ createSampledText <- function(original, sample.percentage = 0.5)
     return(sampled.text)
 }
 
-createSampledDfText <- function(original, sample.percentage = 0.5)
+createSampledDfText <- function(original, sample.percentage = 0.5, book = "default")
 {
+    set.seed(1)
     if(!file.exists(original))
     {
         print("no file")
@@ -34,6 +36,7 @@ createSampledDfText <- function(original, sample.percentage = 0.5)
                            replace = FALSE))
     sampled.text <- original.text[n.lines]
     return(data.frame(doc_id = 1:as.integer(length(original.text) * sample.percentage),
+                      book = book,
                       text = sampled.text,
                       stringsAsFactors = FALSE))
 }
