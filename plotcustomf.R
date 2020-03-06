@@ -8,11 +8,11 @@ library(ggthemes)
 library(patchwork)
 
 
-plotbar.wf <- function(df, title = "Word Frequency")
+plotbar.wf <- function(df, title = "Word Frequency", topn = 10)
 {
     df$word <- factor(df$word,
                       levels = unique(as.character(df$word)))
-    p <- ggplot(df[1:10,], aes(x = word, y = frequency))  +
+    p <- ggplot(df[1:topn,], aes(x = word, y = frequency))  +
         geom_bar(stat = "identity", fill = "darkred") +
         coord_flip() +
         theme_gdocs() +
