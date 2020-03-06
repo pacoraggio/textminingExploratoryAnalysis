@@ -11,6 +11,7 @@ clean.corpus <- function(corpus)
 clean.text <- function(lines)
 {
     lines <- tolower(lines)
+    lines <- gsub("[^[:alnum:][:blank:]?&/\\-]", "", lines) # remove non UTF-8 characters from text
     lines <- gsub("[[:punct:]]", "", lines) # remove punctuation
     lines <- gsub("[[:digit:]]", "", lines) # remove digits
     lines <- gsub("\\s+", " ", str_trim(lines)) # remove extra whitespaces
