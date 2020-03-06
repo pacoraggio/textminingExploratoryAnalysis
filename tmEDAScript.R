@@ -6,7 +6,7 @@
 rm(list = ls())
 
 options(stringsAsFactors = FALSE)
-# Sys.setlocale('LC_ALL', 'C')
+Sys.setlocale('LC_ALL', 'C')
 
 library(dplyr)
 library(tidytext)
@@ -19,6 +19,7 @@ source("createSampledText.R")
 source("plotcustomf.R")
 source("cleanCorpus.R")
 source("wordfrequency.R")
+source("tidyNgrams.R")
 
 df.summary <- read.table('./en_US/summary.txt', 
                          col.names = c("lines",
@@ -70,9 +71,9 @@ df.twitter <- data.frame(n_row = 1:length(sample.twitter),
 tic()
 
 
-df.news <- createSampledDfText('./en_US/en_US.news.txt', 0.01, book = "news")
-df.blogs <- createSampledDfText('./en_US/en_US.blogs.txt', 0.01, book = "blogs")
-df.twitter <- createSampledDfText('./en_US/en_US.twitter.txt', 0.015, book = "twitter")
+df.news <- createSampledDfText('./en_US/en_US.news.txt', 0.015, book = "news")
+df.blogs <- createSampledDfText('./en_US/en_US.blogs.txt', 0.015, book = "blogs")
+df.twitter <- createSampledDfText('./en_US/en_US.twitter.txt', 0.0075, book = "twitter")
 
 df.complete <- rbind(df.news, df.blogs, df.twitter)
 df.complete$doc_id <- 1:nrow(df.complete)
@@ -86,7 +87,7 @@ save(df.complete, file = "dfcomplete.RData")
 # sum(nchar(df.blogs$text))
 # sum(nchar(df.twitter$text))
 
-names(df.news)
+#names(df.news)
 ## Cleaning Text
 
 df.twitter$text <- clean.text(df.twitter$text)
@@ -108,10 +109,14 @@ blogs.wf <- word.frequency(df.corpus = df.blogs, remove.stopwords = TRUE)
 twitter.wf <- word.frequency(df.corpus = df.twitter, remove.stopwords = TRUE)
 complete.wf <- word.frequency(df.corpus = df.complete, remove.stopwords = TRUE)
 
-windows()
-plotbar.wf(complete.wf, "Total Word Frequency")
+p.news <- plotbar.wf(news.wf, "News")
+p.blogs <- plotbar.wf(blogs.wf, "Blogs")
+p.twitter <- plotbar.wf(twitter.wf, "Twitter")
+p.complete <- plotbar.wf(complete.wf, "Total")
 
-head(a1, n = 10)
+windows()
+((p.news + p.blogs + p.twitter) / p.complete)
+
 
 tidyNews <- df.news %>% 
     unnest_tokens(word, text) %>%
@@ -180,6 +185,8 @@ tidyTwitter1 %>%
     count(word, sort = TRUE)
 
 
+## N-Grams
+
 # Relationships between words: n-grams and correlations
 # Word Frequency consider words as individual units however our goal is to
 # examining relationships between words i.e. which words tend to follow
@@ -194,9 +201,14 @@ tidyTwitter1 %>%
 # df.news[df.news$text == "",]
 # df.news <- df.news[-df.news[df.news$text == "",]$doc_id,]
 
+# forse drop_na va qui
 news.bigrams <- df.news %>% 
-    unnest_tokens(bigram, text, token = "ngrams", n =2,
-                  collapse = TRUE) 
+    unnest_tokens(bigram, text, token = "ngrams", n =2) %>%
+    drop_na()
+
+
+sum(news.bigrams == n.bigrams)/3
+head(news.bigrams$bigram)
 
 blogs.bigrams <- df.blogs %>% 
     unnest_tokens(bigram, text, token = "ngrams", n =2,
@@ -209,6 +221,9 @@ twitter.bigrams <- df.twitter %>%
 # Counting and filtering n-grams
 
 news.bigrams %>%
+    count(bigram, sort = TRUE)
+
+n.bigrams %>%
     count(bigram, sort = TRUE)
 
 blogs.bigrams %>%
@@ -225,6 +240,7 @@ library(tidyr)
 
 news.bigramsseparated <- news.bigrams %>%
     separate(bigram, c("word1", "word2"), sep = " ")
+
 
 news.bigramsfiltered <- news.bigramsseparated %>%
     filter(!word1 %in% stop_words$word) %>%
@@ -249,6 +265,9 @@ twitter.bigramsfiltered <- twitter.bigramsseparated %>%
 news.bigramscounts <- news.bigramsfiltered %>%
     count(word1, word2, sort = TRUE)
 
+
+
+
 blogs.bigramscounts <- blogs.bigramsfiltered %>%
     count(word1, word2, sort = TRUE)
 
@@ -257,30 +276,149 @@ twitter.bigramscounts <- twitter.bigramsfiltered %>%
 
 # recombining
 
-news.bigramsun <- news.bigramsfiltered %>%
+news.bigramsum <- news.bigramsfiltered %>%
+    drop_na() %>%
     unite(bigram, word1, word2, sep = " ")
 
+sum(is.na(news.bigramsfiltered))
 
 ## Analysing bigrams
 
 # A bigram can also be treated as a term in a document in the same way that we
 # trated individual words
 
-r <- news.bigramsun
-r$doc_id = 1
-head(r)
-test <- r %>%
-    count(doc_id, bigram) %>%
-    bind_tf_idf(bigram, doc_id, n) %>%
+# r <- news.bigramsun
+# r$doc_id = 1
+# head(r)
+n.bigrams <- unnestbigrams(df.news)
+n.bigramsseparated <- separate.bigrams(n.bigrams)
+n.bigramsfiltered <- filter.bigrams(n.bigramsseparated, custom.stopwords$word)
+n.bigramsunited <- unite.bigrams(n.bigramsfiltered)
+
+blogs.cbigrams <- unnest.clened(df.blogs, custom.stopwords)
+twitter.cbigrams <- unnest.clened(df.twitter, custom.stopwords)
+
+total.cbigrams <- unnest.clened(df.complete, custom.stopwords)
+
+remove(n.bigramsfiltered, n.bigramsseparated, n.bigrams)
+
+
+test <- news.bigramsum %>%
+    count(book, bigram) %>%
+    bind_tf_idf(bigram, book, n) %>%
     arrange(desc(tf))
 
-arrange(test, desc(n))
-
-news.bigram_tf_idf <- news.bigramsun %>%
-    count(doc_id, bigram) %>%
-    bind_tf_idf(bigram, doc_id, n) %>%
+test2 <- n.bigramsunited %>%
+    count(book, bigram) %>%
+    bind_tf_idf(bigram, book, n) %>%
     arrange(desc(tf))
 
-head(news.bigram_tf_idf)
-?bind_tf_idf
-a <- grep("orange county", df.news$text, ignore.case = TRUE, value = TRUE)
+test.blogs <- blogs.cbigrams  %>%
+    count(book, bigram) %>%
+    bind_tf_idf(bigram, book, n) %>%
+    arrange(desc(tf))
+
+test.twitter <- twitter.cbigrams  %>%
+    count(book, bigram) %>%
+    bind_tf_idf(bigram, book, n) %>%
+    arrange(desc(tf))
+
+length(unique(total.cbigrams$doc_id))
+
+
+test.total <- total.cbigrams  %>%
+    count(book, bigram) %>%
+    bind_tf_idf(bigram, book, n) %>%
+    arrange(desc(tf))
+
+test.total <- total.cbigrams  %>%
+    count(bigram) %>%
+    arrange(desc(n))
+
+tail(test.total, n = 15)
+
+## 3-grams
+## Visualizing a network of bigrams with ggraph
+mgrams <- str_c("gram",3)
+a1 <- unnest_tokens(df.news, grams, text, token = "ngrams", n = 3)
+names(a1)[3] <- mgrams
+
+nn <- 4
+mgrams <- str_c("gram",nn)
+a1 <- unnest_tokens(df.news, grams, text, token = "ngrams", n = nn)
+names(a1)[3] <- mgrams
+head(a1)
+
+remove(a1)
+nn <- 3
+mgrams <- str_c("gram",nn)
+a1 <- unnest_tokens(df.news, grams, text, token = "ngrams", n = nn)
+names(a1)[3] <- mgrams
+head(a1)
+
+wd <- c()
+for(k in 1:nn)
+{
+    wd <- c(wd, str_c("word",k))
+}   
+
+total.trigrams <- df.complete %>%
+    unnest_tokens(trigram, text, token = "ngrams", n = 3) %>%
+    drop_na() %>%
+    separate(trigram, c("word1","word2","word3")) %>%
+    filter(!word1 %in% custom.stopwords$word,
+           !word2 %in% custom.stopwords$word,
+           !word3 %in% custom.stopwords$word) %>%
+    count(word1, word2, word3, sort = TRUE)
+
+total.trigrams[149,]
+
+total.tetragrams <- df.complete %>%
+    unnest_tokens(tetragram, text, token = "ngrams", n = 4) %>%
+    drop_na() %>%
+    separate(tetragram, c("word1","word2","word3", "word4")) %>%
+    filter(!word1 %in% custom.stopwords$word,
+           !word2 %in% custom.stopwords$word,
+           !word3 %in% custom.stopwords$word,
+           !word4 %in% custom.stopwords$word) %>%
+    count(word1, word2, word3, word4, sort = TRUE)
+
+total.pentagrams <- df.complete %>%
+    unnest_tokens(pentagrams, text, token = "ngrams", n = 5) %>%
+    drop_na() %>%
+    separate(pentagrams, c("word1","word2","word3", "word4", "word5")) %>%
+    filter(!word1 %in% custom.stopwords$word,
+           !word2 %in% custom.stopwords$word,
+           !word3 %in% custom.stopwords$word,
+           !word4 %in% custom.stopwords$word,
+           !word5 %in% custom.stopwords$word) %>%
+    count(word1, word2, word3, sort = TRUE)
+
+head(total.trigrams, n = 20)
+head(total.tetragrams, n = 20)
+head(total.pentagrams, n = 20)
+library(ggraph)
+
+
+### working with trigrams
+library(igraph)
+
+a1 <- unnest.clened(df.complete, custom.stopwords)
+a2 <- separate.bigrams(a1)
+a3 <- filter.bigrams(a2, custom.stopwords)
+a3.count <- a3 %>%
+    count(word1, word2, sort = TRUE)
+
+bigram_graph <- a3.count %>%
+    filter(n > 3) %>%
+    graph_from_data_frame()
+
+windows()
+bigram_graph
+
+set.seed(2020)
+windows()
+ggraph(bigram_graph, layout = "fr") +
+    geom_edge_link() +
+    geom_node_point() +
+    geom_node_text(aes(label = name), vjust = 1, hjust = 1)
