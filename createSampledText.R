@@ -2,7 +2,6 @@
 # author: Paolo Coraggio
 # create date: 02/03/2020
 
-library(readtext)
 
 createSampledText <- function(original, sample.percentage = 0.5)
 {
