@@ -1,0 +1,98 @@
+---
+title: "A Word Predictor in R. Exploratory Data Analysis"
+subtitle: "Coursera Data Science Capstone Project"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+
+
+options(stringsAsFactors = FALSE)
+Sys.setlocale('LC_ALL', 'C')
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Document motivation
+
+The final project for the Coursera Data Science Capstone Course is to implement a shiny based application for predicting the next word based on the ones proposed by a user. This project aims just to:
+
+> 1. Demonstrate that you've downloaded the data and have successfully loaded it in.
+2. Create a basic report of summary statistics about the data sets.
+3. Report any interesting findings that you amassed so far.
+4. Get feedback on your plans for creating a prediction algorithm and Shiny app
+
+## Synopsis
+
+The datasets that will be used to implement the word predictor has been provided by [Coursera](https://www.coursera.org/learn/data-science-project/home/welcome) and consists of text files coming three different sources (news, blogs and twitter) in four different languages (English, Russian, German and Finnish). The full repository can be downloaded at the following [link](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip). In the report only the English/US datasets have been analysed and, for this report, the following steps have been performed:
+- The data have been downloaded and stored in R dataframe
+- A quantitative analysis have been performed in order to assest the data volume and decide - how to eventually sample a significative subset from each souce
+- The text data have been splitted in unigrams, 2-grams, 3-grams and 4-grams and a - subsequente exploratory data analysis have been carried out
+- Some consideration about the data and findings
+- A possible model 
+
+## Downloading and measuring the Dataset
+
+The dataset has been downloaded from the follwing link:
+
+- `https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip`
+
+unzipped and stored in a `Data` subfolder. For the project and the application I will focus on the `en_US` language. Since in `R` is not possible to extract information about a `txt` file without opening and storing it in memory, I prefered to extract the first information about the files using [cygwin](https://www.cygwin.com/) and running the following `Unix` command for counting lines and words:
+
+```
+$ wc -lwmc en_US.blogs.txt en_US.twitter.txt en_US.news.txt > summary.txt
+```
+
+The results are summarised in the following table
+
+```{r, echo=FALSE, warning=FALSE}
+df.summary <- read.table('./en_US/summary.txt', 
+                 col.names = c("lines",
+                               "words",
+                               "characters",
+                               "bytes",
+                               "source"),
+                 nrows = 3)
+
+df.summary <- mutate(df.summary, 
+             Mb = round(bytes*0.00000095367432,2))
+    
+df.summary <- df.summary[,c(5,1,2,3,6)]
+
+knitr::kable(df.summary)
+```
+
+As expected, the `en_US.blogs.txt` file contains more words althoug less lines, meaning that the lines themselves are longer. The idea is to open the files separately, sampling a preset number of lines, delete the object containing the whole file in order to save memory space.
+
+### Sampling the dataset
+
+Since the table shows that the datasets are quite large, loading the entire datasets and the processing the data would be impossible due to the harware limitation of a standard working computer. In order to decide which percentage of data I compared a $1\%$ sampled subset of the `news` dataset with the entire file (in Appendix the code of the function I implemented for loading the data). 
+
+#### Sampled vs Entire dataset - Number of Characters
+
+The following table summarise the basic statistic about the ***number of characters*** of the two datasets.
+
+```{r, echo=FALSE, warning=FALSE}
+# load("dataChar.RData")
+load("dataBlogChar.RData")
+
+knitr::kable(df.Blogschar, col.names = c("Sampled Text", "All Text"),
+             caption = "number of characters of the sampled vs completed datasets")
+```
+
+Without performing any further analysis (e.g. ptest) the table shows that the number are consistent at least for the number of characters. Let's now consider the word distribution.
+
+#### Sampled vs Entire dataset - Word frequency
+
+In this section I will compare the word frequency between the sampled and entire datasets. Moreover, the workflow to compute the word frequency will be later applied to the other datasets (blogs and twitter). To calculate the word frequency all text has been preprocessed using the `clean.text` (see Appendix) function that performs the following steps:
+
+1. transform all text to lower case
+2. remove non UTF-8 characters
+3. remove punctuation
+4. remove digits
+5. remove extra white spaces
+
+
+
+
