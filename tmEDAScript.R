@@ -362,6 +362,7 @@ for(k in 1:nn)
     wd <- c(wd, str_c("word",k))
 }   
 
+names(df.complete)
 total.trigrams <- df.complete %>%
     unnest_tokens(trigram, text, token = "ngrams", n = 3) %>%
     drop_na() %>%
@@ -369,9 +370,21 @@ total.trigrams <- df.complete %>%
     filter(!word1 %in% custom.stopwords$word,
            !word2 %in% custom.stopwords$word,
            !word3 %in% custom.stopwords$word) %>%
-    count(word1, word2, word3, sort = TRUE)
+    count(word1, word2, word3, sort = TRUE) %>%
+    unite(trigram, word1, word2, word3, sep = " ")
 
-total.trigrams[149,]
+head(total.trigrams)
+
+plotbar.ngramf(total.trigrams, ngram = "trigrams", topn = 15)
+
+total.trigrams[,1]
+ggplot(total.trigrams[1:10,], aes())
+
+
+
+ptrigrams <- plotbar.ngramf(total.trigrams, title = "Trigrams Frequency")
+
+names(df.news)
 
 total.tetragrams <- df.complete %>%
     unnest_tokens(tetragram, text, token = "ngrams", n = 4) %>%
@@ -381,7 +394,16 @@ total.tetragrams <- df.complete %>%
            !word2 %in% custom.stopwords$word,
            !word3 %in% custom.stopwords$word,
            !word4 %in% custom.stopwords$word) %>%
-    count(word1, word2, word3, word4, sort = TRUE)
+    count(word1, word2, word3, word4, sort = TRUE) %>%
+    unite(tetragram, word1, word2, word3, word4, sep = " ")
+
+head(total.tetragrams)
+
+ptri <- plotbar.wf(total.trigrams)
+ptetra <- plotbar.wf(total.tetragrams)
+ptetra <- plotbar.ngramf(total.tetragrams, ngram = "tetra")
+windows()
+ptetra
 
 total.pentagrams <- df.complete %>%
     unnest_tokens(pentagrams, text, token = "ngrams", n = 5) %>%
@@ -392,7 +414,10 @@ total.pentagrams <- df.complete %>%
            !word3 %in% custom.stopwords$word,
            !word4 %in% custom.stopwords$word,
            !word5 %in% custom.stopwords$word) %>%
-    count(word1, word2, word3, sort = TRUE)
+    count(word1, word2, word3, word4, word5, sort = TRUE) %>%
+    unite(pentagram, word1, word2, word3, word4, word5, sep = " ")
+
+
 
 head(total.trigrams, n = 20)
 head(total.tetragrams, n = 20)
