@@ -6,7 +6,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 library(dplyr)
-
+library(patchwork)
 
 options(stringsAsFactors = FALSE)
 Sys.setlocale('LC_ALL', 'C')
@@ -31,6 +31,8 @@ The datasets that will be used to implement the word predictor has been provided
 - The text data have been splitted in unigrams, 2-grams, 3-grams and 4-grams and a - subsequente exploratory data analysis have been carried out
 - Some consideration about the data and findings
 - A possible model 
+
+As for exploring the datasets, I have used a `tidyverse` approach mostly based on [Text Mining with R](https://www.tidytextmining.com/). The main reason is because it reflect most the workflow used so far in the entire `Coursera` specialization and the libraries used so far. Moreover, I could reduce, at least in this preliminary part, dealing with massive data structure that would slow down computation and plotting. 
 
 ## Downloading and measuring the Dataset
 
@@ -65,9 +67,9 @@ knitr::kable(df.summary)
 
 As expected, the `en_US.blogs.txt` file contains more words althoug less lines, meaning that the lines themselves are longer. The idea is to open the files separately, sampling a preset number of lines, delete the object containing the whole file in order to save memory space.
 
-### Sampling the dataset
+## Sampling the dataset
 
-Since the table shows that the datasets are quite large, loading the entire datasets and the processing the data would be impossible due to the harware limitation of a standard working computer. In order to decide which percentage of data I compared a $1\%$ sampled subset of the `news` dataset with the entire file (in Appendix the code of the function I implemented for loading the data). 
+Since the table shows that the datasets are quite large, loading the entire datasets and the processing the data would be impossible due to the harware limitation of a standard working computer. In order to decide which percentage of data I compared a $1\%$ sampled subset of the `blogs` dataset with the entire file (in Appendix the code of the function I implemented for loading the data). The reason why the `blogs` dataset was chosen is becouse of its variety (it's somehow between a "news" and "twitter" vocabulary), size and also to effectively test the profanity filter as the `news` dataset contains, not surprisingly, very little swearing.  
 
 #### Sampled vs Entire dataset - Number of Characters
 
@@ -93,6 +95,37 @@ In this section I will compare the word frequency between the sampled and entire
 4. remove digits
 5. remove extra white spaces
 
+```{r, echo=FALSE, warning=FALSE, cache = TRUE, fig.width=12.5, fig.height=7.0}
+load("plot_unisample.RData")
+load("plot_unisampleSW.RData")
+load("plot_unicomplete.RData")
+load("plot_unicompleteSW.RData")
+
+patchwork <- ((plot.sampled + plot.complete) / (plot.sampledSW + plot.completeSW))
+
+patchwork + plot_annotation(
+    title = 'Unigrams Frequency Comparison between Sampled and Complete Blogs dataset',
+    subtitle = 'Comparison without considering stop words (top) and with (bottom)',
+    caption = 'The comparison shows a good approximation with just 1% of the sampled dataset'
+)
+```
+
+
+```{r, echo=FALSE, warning=FALSE, cache = TRUE, fig.width=12.5, fig.height=7.0}
+load("plot_allbigrams.RData")
+load("plot_sampledbigrams.RData")
+load("plot_allbigramsSW.RData")
+load("plot_sampledbigramsSW.RData")
+
+patchwork <- ((plot.sampledbigrams + plot.allbigrams) / (plot.sampledbigramsSW + plot.allbigramsSW))
+
+patchwork + plot_annotation(
+    title = 'Bigrams frequency comparison between Sampled and Complete Blogs dataset',
+    subtitle = 'Comparison without considering stop words (top) and with (bottom)',
+    caption = 'The comparison shows a good approximation with just 1% of the sampled dataset'
+)
+
+```
 
 
 
