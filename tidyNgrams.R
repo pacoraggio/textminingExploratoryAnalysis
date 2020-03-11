@@ -70,13 +70,6 @@ unnest.clened <- function(df.corpus, custom.stopwords)
 }
 
 
-create.bigrams <- function(df.corpus)
-{
-    df.bigrams <- unnestbigrams(df.corpus)
-    df.separated <- separate.bigrams(df.bigrams)
-    df.bigramunited <- unite.bigrams(df.separated)
-    return(df.bigramunited)
-}
 
 # word.frequency <- function(df.corpus, remove.stopwords = FALSE)
 # {
@@ -91,6 +84,31 @@ create.bigrams <- function(df.corpus)
 #     
 #     return(df.wordfreq)
 # }
+
+create.bigrams <- function(df.corpus)
+{
+    df.bigrams <- unnestbigrams(df.corpus)
+    df.separated <- separate.bigrams(df.bigrams)
+    df.bigramunited <- unite.bigrams(df.separated)
+    return(df.bigramunited)
+}
+
+create.bigramsfreq <- function(df.text, remove.stopwords = FALSE)
+{
+    custom.stopwords <- data.frame(word = stopwords('english'),
+                                   lexicon = "mylexicon")
+    
+    bigrams <- df.text %>%
+        unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
+        drop_na() %>%
+        separate(bigram, c("word1","word2")) %>%
+        {if(remove.stopwords)
+            filter(.,!word1 %in% custom.stopwords$word,
+                   !word2 %in% custom.stopwords$word) else .} %>%
+        count(word1, word2, sort = TRUE) %>%
+        unite(bigram, word1, word2, sep = " ")
+}
+
 
 create.trigramsfreq <- function(df.text, remove.stopwords = FALSE)
 {
