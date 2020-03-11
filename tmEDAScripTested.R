@@ -149,6 +149,8 @@ blogsAll.wf_sw <- word.frequency(df.corpus = df.blogsAll, remove.stopwords = TRU
 blogsAll.wf <- word.frequency(df.corpus = df.blogsAll, remove.stopwords = FALSE)
 toc()
 
+# 153.14 sec elapsed
+
 
 save(blogs.wf, file = "blogSampledWordFrequency.RData")
 save(blogs.wf_sw, file = "blogSampledWordFrequencyWStopWord.RData")
@@ -181,12 +183,17 @@ windows()
 windows()
 (p1 + p2)/(p3 + p4)
 
+## bi gram frequency blogs sampled vs blogs all
+
+rm(list = ls())
+
+
+
 
 library(wordcloud)
 set.seed(100)
 wordcloud(names(freq), freq, min.freq=100, colors=brewer.pal(6, "Dark2"))
 
-# 153.14 sec elapsed
 
 head(blogs.wf_sw)
 head(blogsAll.wf_sw)
