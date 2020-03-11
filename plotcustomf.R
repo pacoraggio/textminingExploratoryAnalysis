@@ -15,15 +15,16 @@ plotbar.wf <- function(df, title = "Word Frequency", topn = 10)
     p <- ggplot(df[1:topn,], aes(x = word, y = frequency))  +
         geom_bar(stat = "identity", fill = "darkred") +
         coord_flip() +
-        theme_gdocs() +
+        xlab("word") + ylab("frequency") +        
+        theme_solarized_2(base_size = 12) +
         geom_text(aes(label = frequency), 
-                  color = "white", hjust = 1.25, size = 5.0) +
+                  color = "white", hjust = 1.1, size = 4.5) +
         ggtitle(title)
     return(p)
 }
 
 
-plotbar.ngramf <- function(df, title = "Word Frequency", topn = 10)
+plotbar.ngramf <- function(df, title = "Word Frequency", topn = 10, gram = 2)
 {
     df <- rename(df, c(ngram.var = names(df)[1], frequency = names(df)[2]))
     
@@ -32,9 +33,10 @@ plotbar.ngramf <- function(df, title = "Word Frequency", topn = 10)
     p <- ggplot(df[1:topn,], aes(x = ngram.var, y = frequency))  +
         geom_bar(stat = "identity", fill = "darkred") +
         coord_flip() +
-        theme_gdocs() +
+        xlab(paste(gram,"-gram", sep = "")) + ylab("frequency") +
+        theme_solarized_2(base_size = 12) +
         geom_text(aes(label = frequency), 
-                  color = "white", hjust = 1.25, size = 5.0) +
+                  color = "white", hjust = 1.1, size = 4.5) +
         ggtitle(title)
     return(p)
 }
