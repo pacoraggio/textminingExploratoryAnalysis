@@ -11,7 +11,7 @@ library(patchwork)
 plotbar.wf <- function(df, title = "Word Frequency", topn = 10)
 {
     df$word <- factor(df$word,
-                      levels = unique(as.character(df$word)))
+                      levels = unique(as.character(df$word[order(df$frequency)])))
     p <- ggplot(df[1:topn,], aes(x = word, y = frequency))  +
         geom_bar(stat = "identity", fill = "darkred") +
         coord_flip() +
@@ -29,7 +29,7 @@ plotbar.ngramf <- function(df, title = "Word Frequency", topn = 10, gram = 2)
     df <- rename(df, c(ngram.var = names(df)[1], frequency = names(df)[2]))
     
     df$ngram.var <- factor(df$ngram.var,
-                      levels = unique(as.character(df$ngram.var)))
+                      levels = unique(as.character(df$ngram.var[order(df$frequency)])))
     p <- ggplot(df[1:topn,], aes(x = ngram.var, y = frequency))  +
         geom_bar(stat = "identity", fill = "darkred") +
         coord_flip() +
