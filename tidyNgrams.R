@@ -1,6 +1,7 @@
 # name: tidyNgrams.R
 # sbj: functions for transform a corpus dataframe into data
 #      structure containg n-grams
+# type: library
 # author: Paolo Coraggio
 # create date: 02/03/2020
 
@@ -147,7 +148,7 @@ create.tetragramsfreq <- function(df.text, remove.stopwords = FALSE)
         unite(trigram, word1, word2, word3, word4, sep = " ")
 }
 
-create.pentagramfreq <- function(df.text, remove.stopwords = FALSE)
+create.pentagramsfreq <- function(df.text, remove.stopwords = FALSE)
 {
     custom.stopwords <- data.frame(word = stopwords('english'),
                                    lexicon = "mylexicon")
