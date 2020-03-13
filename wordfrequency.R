@@ -1,5 +1,6 @@
 # name: wordfrequency
 # sbj: functions calculating word frequency from dataframe
+# type: library
 # author: Paolo Coraggio
 # create date: 02/03/2020
 
