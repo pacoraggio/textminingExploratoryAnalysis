@@ -139,7 +139,6 @@ save(df.blogs, file = "tidyDfSampledBlog.RData")
 save(df.blogsAll, file = "tidyDfAllBlog.RData")
 
 ## Word Frequency
-remove(a1, a2, ncharBlogsAll, ncharBlogsSamp, r)
 
 blogs.wf_sw <- word.frequency(df.corpus = df.blogs, remove.stopwords = TRUE)
 blogs.wf <- word.frequency(df.corpus = df.blogs, remove.stopwords = FALSE)
