@@ -140,51 +140,59 @@ load("blogs1percentWFSW.RData")
 load("blogscompleteWF.RData")
 load("blogscompleteWFSW.RData")
 
+load("dfblogs_wf.RData") # 2% 
 
 length(unique(blogs.wf$word))
 length(unique(blogscompleteAll.wf$word))
+length(unique(df.blogs_wf$word))
 
 nrow(blogs.wf[blogs.wf$frequency == 1,])/nrow(blogs.wf)
 nrow(blogscompleteAll.wf[blogscompleteAll.wf$frequency == 1,])/nrow(blogscompleteAll.wf)
+nrow(df.blogs_wf[df.blogs_wf$frequency == 1,])/nrow(df.blogs_wf)
 
 psampledwf <- c()
+psampled2wf <- c()
 pallwf <- c()
+
 for(i in 2:150)
 {
     psampledwf <- c(psampledwf, nrow(blogs.wf[blogs.wf$frequency < i,])/nrow(blogs.wf))
+    psampled2wf <- c(psampled2wf, nrow(df.blogs_wf[df.blogs_wf$frequency < i,])/nrow(df.blogs_wf))
     pallwf <- c(pallwf, nrow(blogscompleteAll.wf[blogscompleteAll.wf$frequency < i,])/nrow(blogscompleteAll.wf))
 }
 
 df.freqpercentSampled <- data.frame(frequency = 2:150,
                                     percentage = psampledwf,
-                                    type = rep("Sampled", length(2:150)))
+                                    type = rep("Sampled 1%", length(2:150)))
+
+df.freq2percentSampled <- data.frame(frequency = 2:150,
+                                    percentage = psampled2wf,
+                                    type = rep("Sampled 2%", length(2:150)))
 
 df.freqpercentAll <- data.frame(frequency = 2:150,
                                     percentage = pallwf,
                                     type = rep("All", length(2:150)))
 
-df.wf <- rbind(df.freqpercentSampled, df.freqpercentAll)
+df.wf <- rbind(df.freqpercentSampled, df.freq2percentSampled, df.freqpercentAll)
+df.wfcomparison <- rbind(df.freqpercentSampled, df.freqpercentAll)
 
-head(df.wf)
-
-min_95_samp <- df.wf %>%
-    filter(percentage > 0.95 & type == "Sampled") %>%
+min_95_samp1 <- df.wfcomparison %>%
+    filter(percentage > 0.95 & type == "Sampled 1%") %>%
     head(n = 1)
 
-min_95_All <- df.wf %>%
+min_95_All <- df.wfcomparison %>%
     filter(percentage > 0.95 & type == "All") %>%
     head(n = 1)
 
-
-p.freq <- ggplot(df.wf, aes(frequency, percentage, color = type)) +
-    geom_point() +
+p.freq <- ggplot(df.wfcomparison, aes(frequency, percentage, color = type)) +
+    geom_point(size = 0.75) +
     scale_color_manual(values = c("#00AFBB", "#FC4E07")) +
     geom_hline(yintercept = 0.95, color = "black", size = 1.25, linetype="dashed") +
     geom_text(aes(x=0.0,label = "0.95", y=0.97), 
               colour="black", angle=0) + 
-    geom_vline(xintercept = min_95_samp$frequency, 
+    geom_vline(xintercept = min_95_samp1$frequency, 
                color = "#FC4E07") +
-    geom_text(aes(x=min_95_samp$frequency, label=min_95_samp$frequency, y=0.0), 
+    geom_text(aes(x=min_95_samp1$frequency, label=min_95_samp1$frequency, y=0.0), 
               colour="#FC4E07", angle=0) +
     geom_vline(xintercept = min_95_All$frequency, color = "#00AFBB") +
     geom_text(aes(x=min_95_All$frequency, label=min_95_All$frequency, y=0.0), 
@@ -193,10 +201,92 @@ p.freq <- ggplot(df.wf, aes(frequency, percentage, color = type)) +
     theme_solarized_2(base_size = 12) +
     ggtitle("Unique words percentage")
 
+windows()
+p.freq
+
+save(min_95_samp1, file = "min95samp1.RData")
+save(min_95_All, file = "min95All.RData")
+save(p.freq, file = "plotfreqcomparison.RData")
+
+########## 
+
+min_95_samp1 <- df.wf %>%
+    filter(percentage > 0.95 & type == "Sampled 1%") %>%
+    head(n = 1)
+
+min_95_samp2 <- df.wf %>%
+    filter(percentage > 0.95 & type == "Sampled 2%") %>%
+    head(n = 1)
+
+min_95_All <- df.wf %>%
+    filter(percentage > 0.95 & type == "All") %>%
+    head(n = 1)
+
+
+save(min_95_samp1, file = "min95samp1.RData")
+# save(min_95_samp2, file = "min95samp2.RData")
+save(min_95_All, file = "min95All.RData")
+
+library(ggplot2)
+library(ggthemes)
+p.freq2 <- ggplot(df.wf, aes(frequency, percentage, color = type)) +
+    geom_point(size = 0.75) +
+    scale_color_manual(values = c("#00AFBB", "#FC4E07", "#E69F00")) +
+    geom_hline(yintercept = 0.95, color = "black", size = 1.25, linetype="dashed") +
+    geom_text(aes(x=0.0,label = "0.95", y=0.97), 
+              colour="black", angle=0) + 
+    geom_vline(xintercept = min_95_samp1$frequency, 
+               color = "#00AFBB") +
+    geom_vline(xintercept = min_95_samp2$frequency, 
+               color = "#FC4E07") +
+    geom_text(aes(x=min_95_samp1$frequency, label=min_95_samp1$frequency, y=0.0), 
+              colour="#00AFBB", angle=0) +
+    geom_text(aes(x=min_95_samp2$frequency, label=min_95_samp2$frequency, y=0.1), 
+              colour="#FC4E07", angle=0) +
+    geom_vline(xintercept = min_95_All$frequency, color = "#E69F00") +
+    geom_text(aes(x=min_95_All$frequency, label=min_95_All$frequency, y=0.0), 
+              colour="#E69F00", angle=0) +
+    xlab("word frequency") + ylab("unique words percentage") +        
+    theme_solarized_2(base_size = 12) +
+    ggtitle("Unique words percentage")
+
+p.freq <- ggplot(df.wf, aes(frequency, percentage, color = type)) +
+    geom_point(size = 0.75) +
+    scale_color_manual(values = c("#00AFBB", "#FC4E07", "#E69F00")) +
+    geom_hline(yintercept = 0.95, color = "black", size = 1.25, linetype="dashed") +
+    geom_text(aes(x=0.0,label = "0.95", y=0.97), 
+              colour="black", angle=0) + 
+    geom_vline(xintercept = min_95_samp1$frequency, 
+               color = "#00AFBB") +
+    geom_text(aes(x=min_95_samp1$frequency, label=min_95_samp1$frequency, y=0.0), 
+              colour="#00AFBB", angle=0) +
+    geom_vline(xintercept = min_95_All$frequency, color = "#E69F00") +
+    geom_text(aes(x=min_95_All$frequency, label=min_95_All$frequency, y=0.0), 
+              colour="#E69F00", angle=0) +
+    xlab("word frequency") + ylab("unique words percentage") +        
+    theme_solarized_2(base_size = 12) +
+    ggtitle("Unique words percentage")
+
+
+windows()
+patchwork <- p.freq2
+
+patchwork + plot_annotation(
+    title = 'Unigrams Frequency Comparison between Sampled and Complete Blogs dataset',
+    subtitle = 'Comparison without considering stop words (top) and with (bottom)',
+    caption = 'The comparison shows a good approximation with just 1% of the sampled dataset'
+)
+
+
+
 save(p.freq, file = "plotfreqBlogs.RData")
+save(p.freq2, file = "plotfreq2Blogs.RData")
+
+rm(list = ls())
+load("plotfreq2Blogs.RData")
+
+p.freq2
 ### 
-
-
 
 frequencySampled <- sort(unique(blogs.wf$frequency))
 frequencyAll <- sort(unique(blogscompleteAll.wf$frequency))
@@ -246,6 +336,7 @@ a1 <- sort(blogs.wf[nchar(blogs.wf$word) == 18,]$word)
 a2 <- sort(blogscompleteAll.wf[nchar(blogscompleteAll.wf$word) == 18,]$word)
 
 # 75% of words
+
 
 min_75_samp <- df.wf %>%
     filter(percentage > 0.75 & type == "Sampled") %>%
