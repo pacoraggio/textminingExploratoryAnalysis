@@ -23,7 +23,7 @@ source("cleanCorpus.R")
 source("wordfrequency.R")
 source("tidyNgrams.R")
 
-## Task 1: comparing the 1% of the data versus the whole
+## Task 2: comparing the 2% of the data profanity and without
 
 df.news <- createSampledDfText('./en_US/en_US.news.txt', 0.02, book = "news")
 df.blogs <- createSampledDfText('./en_US/en_US.blogs.txt', 0.02, book = "blogs")
@@ -32,6 +32,8 @@ df.twitter <- createSampledDfText('./en_US/en_US.twitter.txt', 0.02, book = "twi
 df.complete <- rbind(df.news, df.blogs, df.twitter)
 df.complete$doc_id <- 1:nrow(df.complete)
 
+
+
 # new clean.text removing websites references
 tic()
 df.twitter$text <- clean.text(df.twitter$text)
@@ -39,7 +41,7 @@ df.news$text <- clean.text(df.news$text)
 df.blogs$text <- clean.text(df.blogs$text)
 df.complete$text <- clean.text(df.complete$text)
 toc()
-# 15.25 sec elapsed - 10.08 sec elapsed -10.41 sec elapsed - 11.42 sec elapsed
+# 15.25 sec elapsed - 10.08 sec elapsed -10.41 sec elapsed - 11.42 sec elapsed - 9.27 sec elapsed
 
 df.twitter_withprofanity <- df.twitter
 df.blogs_withprofanity <- df.blogs
@@ -66,10 +68,10 @@ df.blogs$text <- removeWords(df.blogs$text, profanity.df$word)
 df.news$text <- removeWords(df.news$text, profanity.df$word)
 df.complete$text <- removeWords(df.complete$text, profanity.df$word)
 
-save(df.news, file = "dfnewsNP.RData")
-save(df.blogs, file = "dfblogsNP.RData")
-save(df.twitter, file = "dftwitterNP.RData")
-save(df.complete, file = "dfcompleteNP.RData")
+save(df.news, file = "news_2percentNoProf.RData")
+save(df.blogs, file = "blogs_2percentNoProf.RData")
+save(df.twitter, file = "twitter_2percentNoProf.RData")
+save(df.complete, file = "complete_2PercentNoProf.RData")
 
 # a1 <- unique(tolower(lexicon::profanity_alvarez))
 # grep("motherfucker", df.twitter$text, value = TRUE)
