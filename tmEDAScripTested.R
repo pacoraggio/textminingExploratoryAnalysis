@@ -86,19 +86,6 @@ df.Blogschar <- data.frame("Sampled Text" = round(c(sum(ncharBlogsSamp),
 save(df.Blogschar, file = "dataBlogChar.RData")
 save(df.blogsAll, file = "dfblogsall.RData")
 
-
-# df.ncharnews <- data.frame(nchar = ncharSamp,
-#                            group = "sampled")
-# df.ncharnewsAll <- data.frame(nchar = ncharAll,
-#                            group = "All")
-# 
-# plot.data <- rbind(df.ncharnews, df.ncharnewsAll)
-# 
-# windows()
-# ggplot(plot.data, aes(x = group, y = nchar, fill = group)) +
-#     geom_boxplot()
-# 
-
 df.complete <- rbind(df.news, df.blogs, df.twitter)
 df.complete$doc_id <- 1:nrow(df.complete)
 
