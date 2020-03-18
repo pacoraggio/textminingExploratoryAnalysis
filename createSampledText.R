@@ -21,6 +21,23 @@ createSampledText <- function(original, sample.percentage = 0.5)
     return(sampled.text)
 }
 
+createDfText <- function(original, book = "default")
+{
+    if(!file.exists(original))
+    {
+        print("no file")
+        return(NULL)
+    } 
+    f <- file(original, "rb")
+    original.text <- readLines(f, encoding = "UTF-8")
+    close(f)
+    
+    return(data.frame(doc_id = 1:as.integer(length(original.text)),
+                      book = book,
+                      text = original.text,
+                      stringsAsFactors = FALSE))
+}
+
 createSampledDfText <- function(original, sample.percentage = 0.5, book = "default")
 {
     set.seed(1)
