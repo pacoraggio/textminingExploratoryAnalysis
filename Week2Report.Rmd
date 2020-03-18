@@ -81,12 +81,11 @@ As expected, the `en_US.blogs.txt` file contains more words althoug less lines, 
 
 > Q. How to sample the data from the available sources
 
-
 Since the table shows that the datasets are quite large, loading the entire datasets and the processing the data would be impossible due to the harware limitation of a standard working computer. In order to decide which percentage of data I compared a $1\%$ sampled subset of the `blogs` dataset with the entire file (in Appendix the code of the function I implemented for loading the data). The reason why the `blogs` dataset was chosen is becouse of its variety (it's somehow between a "news" and "twitter" vocabulary), size and also to effectively test the profanity filter as the `news` dataset contains, not surprisingly, very little swearing.  
 
-#### Sampled vs Entire dataset - Number of Characters
+### Sampled vs Entire dataset - Number of Characters
 
-The following table summarise the basic statistic about the ***number of characters*** of the two datasets.
+The following table summarise the basic statistic about the ***number of characters*** of the two datasets before cleaning the text.
 
 ```{r, echo=FALSE, warning=FALSE}
 # load("dataChar.RData")
@@ -98,7 +97,7 @@ knitr::kable(df.Blogschar, col.names = c("Sampled Text", "All Text"),
 
 Without performing any further analysis (e.g. ptest) the table shows that the number are consistent at least for the number of characters. Let's now consider the word distribution.
 
-#### Sampled vs Entire dataset - Word frequency
+### Sampled vs Entire dataset - Word frequency
 
 In this section I will compare the word frequency between the sampled and entire datasets. Moreover, the workflow to compute the word frequency will be later applied to the other datasets (blogs and twitter). To calculate the word frequency all text has been preprocessed using the [`clean.text`](#clean.text-function) (see Appendix) function that performs the following steps:
 
@@ -108,6 +107,8 @@ In this section I will compare the word frequency between the sampled and entire
 4. remove digits
 5. remove references to websites (to improve)
 6. remove extra white spaces
+
+The following plots compare the top 15 most frequent words for the sampled and complete Blogs datasets.
 
 ```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=12.5, fig.height=8.0}
 load("plot_unisample.RData")
@@ -122,6 +123,18 @@ patchwork + plot_annotation(
     subtitle = 'Comparison without considering stop words (top) and with (bottom)',
     caption = 'The comparison shows a good approximation with just 1% of the sampled dataset'
 )
+```
+
+As we can see, there is a good match in the most frequent words with just 1% of the sampled dataset. If we now consider the less frequent words, we notice they form the vast majority of words unnested from the text. In both the sampled and the complete datasets, more than $50 \%$ of the unique words appear in the text just once.
+
+The following plot shows the percentage of unique words with respect to the word frequency.
+
+```{r, echo=FALSE, warning=FALSE, fig.width=7.0,  fig.height=3.5, fig.align='center'}
+load("plotfreqcomparison.RData")
+load("min95samp1.RData")
+load("min95All.RData")
+
+p.freq
 ```
 
 #### Dataset Sampling final remarks
