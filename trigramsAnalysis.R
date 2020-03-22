@@ -83,12 +83,74 @@ windows()
 pcomplete.trigrams + pcomplete.trigramsSW
 
 ### head and tail
-names(complete.trigrams)
-length(unique(complete.trigrams$trigram))
-nrow(complete.trigrams[complete.trigrams$n > 5,])
-tail(complete.trigrams[complete.trigrams$n > 5,])
+rm(list = ls())
+library(ggplot2)
 
-nrow(complete.trigrams[complete.trigrams$n > 5,])/nrow(complete.trigrams)
+load("news_trigrams.RData")
+load("blogs_trigrams.RData")
+load("twitter_trigrams.RData")
+load("complete_trigrams.RData")
+
+names(complete.trigrams)
+
+nrow(news.trigrams[news.trigrams$n == 1,])
+nrow(blogs.trigrams[blogs.trigrams$n == 1,])
+nrow(twitter.trigrams[twitter.trigrams$n == 1,])
+nrow(complete.trigrams[complete.trigrams$n == 1,])
+
+nrow(news.trigrams[news.trigrams$n == 1,])/nrow(news.trigrams)
+nrow(blogs.trigrams[blogs.trigrams$n == 1,])/nrow(blogs.trigrams)
+nrow(twitter.trigrams[twitter.trigrams$n == 1,])/nrow(twitter.trigrams)
+nrow(complete.trigrams[complete.trigrams$n == 1,])/nrow(complete.trigrams)
+
+news.percenttrigrams <- c()
+blogs.percenttrigrams <- c()
+twitter.percenttrigrams <- c()
+complete.percenttrigrams <- c()
+
+k1 <- 1:30
+
+for(i in k1)
+{
+    news.percenttrigrams <- c(news.percenttrigrams,
+                             nrow(news.trigrams[news.trigrams$n <= i,])/nrow(news.trigrams))
+    blogs.percenttrigrams <- c(blogs.percenttrigrams,
+                              nrow(blogs.trigrams[blogs.trigrams$n <= i,])/nrow(blogs.trigrams))
+    twitter.percenttrigrams <- c(twitter.percenttrigrams,
+                                nrow(twitter.trigrams[twitter.trigrams$n <= i,])/nrow(twitter.trigrams))
+    complete.percenttrigrams <- c(complete.percenttrigrams,
+                                 nrow(complete.trigrams[complete.trigrams$n <= i,])/nrow(complete.trigrams))
+}
+
+
+df.newsfreqpercenttri <- data.frame(frequency = k1,
+                                 percentage = news.percenttrigrams,
+                                 type = rep("news 3-grams", length(k1)))
+df.blogsfreqpercenttri <- data.frame(frequency = k1,
+                                  percentage = blogs.percenttrigrams,
+                                  type = rep("blogs 3-grams", length(k1)))
+df.twitterfreqpercenttri <- data.frame(frequency = k1,
+                                    percentage = twitter.percenttrigrams,
+                                    type = rep("twitter 3-grams", length(k1)))
+df.completefreqpercenttri <- data.frame(frequency = k1,
+                                     percentage = complete.percenttrigrams,
+                                     type = rep("complete 3-grams", length(k1)))
+
+df.freqpercenttri <-rbind(df.newsfreqpercenttri,
+                       df.blogsfreqpercenttri,
+                       df.twitterfreqpercenttri,
+                       df.completefreqpercenttri)
+
+df.freqpercenttri$type = factor(df.freqpercenttri$type, levels = c("news 3-grams",
+                                                                   "blogs 3-grams",
+                                                                   "twitter 3-grams", 
+                                                                   "complete 3-grams"))
+
+library(ggthemes)
 windows()
-ggplot(complete.trigrams[complete.trigrams$n > 5,], aes(n)) +
-    geom_histogram(bins = 400)
+p.freqpercenttri <- ggplot(df.freqpercenttri, aes(frequency, percentage, color = type)) +
+    geom_point(size = 0.8) +
+    theme_solarized_2(base_size = 12) 
+
+save(df.freqpercenttri, file = "df_freqpercenttri.RData")
+save(p.freqpercenttri, file = "plot_freqpercenttri.RData")

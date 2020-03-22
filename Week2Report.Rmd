@@ -1,20 +1,27 @@
 ---
 title: "A Word Predictor in R. Exploratory Data Analysis"
 subtitle: "Coursera Data Science Capstone Project"
+author: "Paolo Coraggio"
+date: "22/03/2020"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 library(dplyr)
+library(ggplot2)
+library(ggthemes)
 library(patchwork)
+library(knitr)
+library(kableExtra)
 
+options(width=120)
 options(stringsAsFactors = FALSE)
 Sys.setlocale('LC_ALL', 'C')
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-## Document motivation
+# Document motivation
 
 The final project for the Coursera Data Science Capstone Course is to implement a shiny based application for predicting the next word based on the ones proposed by a user. For this assignment the aims is to:
 
@@ -27,36 +34,27 @@ In this document I will show how, by performing some basic exploratory data anal
 
 ## Synopsis
 
-The main aspects that will be investigated in this document are:
+The datasets that will be used to implement the word predictor has been provided by [Coursera](https://www.coursera.org/learn/data-science-project/home/welcome) and consist of text files coming three different sources (news, blogs and twitter) in four different languages (English, Russian, German and Finnish). The full repository can be downloaded at the following [link](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip). In this report only the English/US datasets have been analysed and the following steps have been performed:
 
-1. The composition of the provided data
-2. How to create a meaningful dataset from the overall data
-3. What kind of features extract from the data
-
-
-The datasets that will be used to implement the word predictor has been provided by [Coursera](https://www.coursera.org/learn/data-science-project/home/welcome) and consists of text files coming three different sources (news, blogs and twitter) in four different languages (English, Russian, German and Finnish). The full repository can be downloaded at the following [link](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip). In the report only the English/US datasets have been analysed and, for this report, the following steps have been performed:
-
-- The data have been downloaded and stored in R dataframe
-- A quantitative analysis have been performed in order to assest the data volume and decide - how to eventually sample a significative subset from each souce
-- The text data have been splitted in unigrams, 2-grams, 3-grams and 4-grams and a - subsequente exploratory data analysis have been carried out
-- Some consideration about the data and findings
-- A possible model 
+- [The data have been downloaded and stored in R data structure](#downloading-and-evaluating-size of-the-dataset)
+- [A quantitative analysis have been performed in order to assest the data volume and decide how to sample a significative subset from each source](#sampling-the-dataset)
+- [The text data have been splitted in unigrams, 2-grams, 3-grams and 4-grams analysing the most and less frequent n-grams](#tokens-analysis)
+- [Some consideration about the data and findings and proposing a possible model](#further-improvement-and-final-remarks) 
 
 As for exploring the datasets, I have used a `tidyverse` approach mostly based on [Text Mining with R](https://www.tidytextmining.com/). The main reason is because it reflect most the workflow used so far in the entire `Coursera` specialization and the libraries used so far. Moreover, I could reduce, at least in this preliminary part, dealing with massive data structure that would slow down computation and plotting. 
 
-## Downloading and measuring the Dataset
+## Downloading and evaluating size of the dataset
 
 The dataset has been downloaded from the follwing link:
 
 - `https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip`
 
-unzipped and stored in a `Data` subfolder. For the project and the application I will focus on the `en_US` language. Since in `R` is not possible to extract information about a `txt` file without opening and storing it in memory, I prefered to extract the first information about the files using [cygwin](https://www.cygwin.com/) and running the following `Unix` command for counting lines and words:
+unzipped and stored in a `Data` subfolder. For the project and the application I will focus on the `en_US` language. Using  [cygwin](https://www.cygwin.com/) command:
 
 ```
 $ wc -lwmc en_US.blogs.txt en_US.twitter.txt en_US.news.txt > summary.txt
 ```
-
-The results are summarised in the following table
+we can extract the first summary information:
 
 ```{r, echo=FALSE, warning=FALSE}
 df.summary <- read.table('./en_US/summary.txt', 
@@ -69,37 +67,47 @@ df.summary <- read.table('./en_US/summary.txt',
 
 df.summary <- mutate(df.summary, 
              Mb = round(bytes*0.00000095367432,2))
-    
-df.summary <- df.summary[,c(5,1,2,3,6)]
 
-knitr::kable(df.summary)
+r <- df.summary$source    
+df.summary <- df.summary[,c(1,2,3,6)]
+row.names(df.summary) <- r
+
+# , col.names = c("Sampled Text", "All Text")
+knitr::kable(df.summary, col.names = c("Lines", "Words", "Characters", "Size (Mb)"),
+             caption = "Summary table for datasets") %>%
+  kable_styling(full_width = F) %>%
+  column_spec(1, bold = T, border_right = T) %>%
+  column_spec(2, width = "6em") %>%
+  column_spec(3, width = "6em") %>%
+  column_spec(4, width = "6em")
 ```
 
-As expected, the `en_US.blogs.txt` file contains more words althoug less lines, meaning that the lines themselves are longer. The idea is to open the files separately, sampling a preset number of lines, delete the object containing the whole file in order to save memory space.
+As expected, the `en_US.blogs.txt` file contains more words althoug less lines, meaning that the lines themselves are longer. As the files are quite large and processing all data would be unfeasible, the approach is to open the files separately, sampling a preset number of lines, and delete the object containing the whole file in order to save memory space.
 
 ## Sampling the dataset
 
-> Q. How to sample the data from the available sources
-
-Since the table shows that the datasets are quite large, loading the entire datasets and the processing the data would be impossible due to the harware limitation of a standard working computer. In order to decide which percentage of data I compared a $1\%$ sampled subset of the `blogs` dataset with the entire file (in Appendix the code of the function I implemented for loading the data). The reason why the `blogs` dataset was chosen is becouse of its variety (it's somehow between a "news" and "twitter" vocabulary), size and also to effectively test the profanity filter as the `news` dataset contains, not surprisingly, very little swearing.  
+In order to decide which percentage of data to sample, I compared a $1\%$ sampled subset of the `blogs` dataset with its whole (in Appendix the [code of the function](#createsampleddftext-function)). The `blogs` dataset was chosen becouse of its variety (it's somehow between a "news" and "twitter" vocabulary), size and also to effectively test the profanity filter as the `news` dataset contains, not surprisingly, very little swearing.  
 
 ### Sampled vs Entire dataset - Number of Characters
 
 The following table summarise the basic statistic about the ***number of characters*** of the two datasets before cleaning the text.
 
 ```{r, echo=FALSE, warning=FALSE}
-# load("dataChar.RData")
 load("dataBlogChar.RData")
 
 knitr::kable(df.Blogschar, col.names = c("Sampled Text", "All Text"),
-             caption = "number of characters of the sampled vs completed datasets")
+             caption = "number of characters of the sampled vs completed datasets") %>%
+  kable_styling(full_width = F)  %>%
+  column_spec(1, bold = T, border_right = T) %>%
+  column_spec(2, width = "8em") %>%
+  column_spec(3, width = "8em") 
 ```
 
 Without performing any further analysis (e.g. ptest) the table shows that the number are consistent at least for the number of characters. Let's now consider the word distribution.
 
-### Sampled vs Entire dataset - Word frequency
+### Sampled vs Entire dataset - Token frequency
 
-In this section I will compare the word frequency between the sampled and entire datasets. Moreover, the workflow to compute the word frequency will be later applied to the other datasets (blogs and twitter). To calculate the word frequency all text has been preprocessed using the [`clean.text`](#clean.text-function) (see Appendix) function that performs the following steps:
+In this section I will compare the word frequency^[It should be more correct using the term ***word count*** than word frequency but since I will mostly compare the occurrances, the results are the same than dividing for the sum of all words] between the sampled and entire datasets.  Moreover, the workflow to compute the word frequency will be later applied to the other datasets (blogs and twitter). To calculate the word counts, all text has been preprocessed using the [`clean.text`](#clean.text-function) (see Appendix) function that performs the following steps:
 
 1. transform all text to lower case
 2. remove non UTF-8 characters
@@ -108,46 +116,54 @@ In this section I will compare the word frequency between the sampled and entire
 5. remove references to websites (to improve)
 6. remove extra white spaces
 
+
+#### Sampled vs Entire dataset - Most frequent tokens
+
 The following plots compare the top 15 most frequent words for the sampled and complete Blogs datasets.
 
-```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=12.5, fig.height=8.0}
+```{r, echo=FALSE, cache=TRUE, fig.width=11.5, fig.height=7.0}
 load("plot_unisample.RData")
 load("plot_unisampleSW.RData")
 load("plot_unicomplete.RData")
 load("plot_unicompleteSW.RData")
 
-patchwork <- ((plot.sampled + plot.complete) / (plot.sampledSW + plot.completeSW))
+patchwordunis <- (plot.sampled + plot.complete) / (plot.sampledSW + plot.completeSW)
 
-patchwork + plot_annotation(
-    title = 'Unigrams Frequency Comparison between Sampled and Complete Blogs dataset',
-    subtitle = 'Comparison without considering stop words (top) and with (bottom)',
-    caption = 'The comparison shows a good approximation with just 1% of the sampled dataset'
-)
+patchwordunis + plot_annotation(
+    title = 'top 15 unigrams for `blog` dataset',
+    subtitle = 'Comparison between sampled (left) and entire dataset (right), without considering stop words (top) and with (bottom)')
+
 ```
 
 As we can see, there is a good match in the most frequent words with just 1% of the sampled dataset. If we now consider the less frequent words, we notice they form the vast majority of words unnested from the text. In both the sampled and the complete datasets, more than $50 \%$ of the unique words appear in the text just once.
 
+#### Sampled vs Entire dataset - Less frequent tokens
+
 The following plot shows the percentage of unique words with respect to the word frequency.
 
-```{r, echo=FALSE, warning=FALSE, fig.width=7.0,  fig.height=3.5, fig.align='center'}
+```{r, echo=FALSE, warning=FALSE, fig.width=6.5,  fig.height=3.5, fig.align='center'}
 load("plotfreqcomparison.RData")
 load("min95samp1.RData")
 load("min95All.RData")
 
-p.freq
+p.freq + plot_annotation(
+    title = 'Percentage of unique words cover with word count',
+    subtitle = 'Comparison between sampled (left) and entire dataset (right)')
 ```
 
-#### Dataset Sampling final remarks
+The plot shows that $75\%$ of unique words is formed by words appearing less then $3$ times for both datasets (the plots also shows at which frequency we cover the $95\%$ of the words for the different datasets). 
 
-With $1\%$ of the data sampled, the blogs dataset seems to properly reflect the behavior of the entire data^[I also performed further investigation on words, bigrams and trigrams frequency distribution that are not reported in this document in order to be more coincise. On the github repository there is the code I developed to do that]. To be on a safe side, the next analysis will be based on a $2\%$ sampling of the data for all different datasets. 
+### Dataset Sampling final remarks
+
+With $1\%$ of the data sampled, the blogs dataset seems to properly reflect the behavior of the entire data^[I also performed further investigation on words, bigrams and trigrams frequency distribution that are not reported in this document in order to be more coincise (full code available on [GitHub](https://github.com/pacoraggio/textminingExploratoryAnalysis)) On the github repository there is the code I developed to do that. To be on a safe side, the next analysis will be based on a $2\%$ sampling of the data for all different datasets. 
 
 ## Tokens Analysis
 
-In the previous sections I introduced the `clean.text` function to remove all next that would  impact to the [*tokenization*](https://en.wikipedia.org/wiki/Lexical_analysis#Tokenization) of the text. The approch I followed is to use first words as tokens making use of the `unnest_tokens` function from the `tidytext` library. The basic idea is to build dataframes containing from 1 (basically *words*) up to [5-ngrams](https://en.wikipedia.org/wiki/N-gram) that will be used for implementing the next word predictor. In the following sections I will show the distribution of the different $N$-grams as this process will give me some insight about how to use the provide the text and perform further operation on the data to possibly improve the final application. I will compare the N-grams frequency considering the dataset with and without ***stop words***. Stop Words are a set (customizable based on different languages and purposes) of commonly used words. By removing Stop Words we will obtain the most `salient` terms for each dataset (news, blogs and twitter) and possibly have some hints about the differences between them and this could lead to a different approach in sampling the overall text (see the results section). 
+In the previous sections I introduced the `clean.text` function to remove all text that would  impact the [*tokenization*](https://en.wikipedia.org/wiki/Lexical_analysis#Tokenization) of the text. The approch I followed is to use first words as tokens and building dataframes containing from 1 (basically *words*) up to [4-ngrams](https://en.wikipedia.org/wiki/N-gram) that will be used for implementing the next word predictor (the `unnest_tokens` function from the `tidytext` library will split the tokens). The distribution of the different $N$-grams will give some insight about the dataset themselves and how to use the $N$-grams to improve the prediction rate of the application. I will compare the N-grams frequency considering the dataset with and without ***stop words***. Stop Words are a set (customizable based on different languages and purposes) of commonly used words. By removing Stop Words we will obtain the most "salient" terms for each dataset (news, blogs and twitter) and possibly have some hints about the differences between them and this could lead to a different approach in sampling the overall text (see the results section). 
 
 ### Profanity Filter
 
-In cleaning the text I just removed characters that would impact the text tokenization. A profanity filter will remove all the words that could be considered as "offensive". The profanity filters is an interesting data analysis exercise as we can spend a lot of time arguing what is offensive or not and its level. Besides, it's really difficult to implement a *perfect* profanity filter as human inventiveness has very few limits when it comes to being offensive. My approach was to use the `sentimentr` library and using `profanity_arr_bad` and `profanity_alvarez` lists and still the results are quite poor. In the
+In cleaning the text I just removed characters that would impact the text tokenization. A profanity filter will remove all the words that could be considered as "offensive". The profanity filters is an interesting data analysis exercise as we can spend a lot of time arguing what is offensive or not and its level. Besides, it's really difficult to implement a *perfect* profanity filter as human inventiveness has very few limits when it comes to being offensive. My approach was to use the `sentimentr` library and using `profanity_arr_bad` and `profanity_alvarez` lists and still the results are quite poor. 
 
 ### Unigrams Analysis
 
@@ -156,150 +172,211 @@ The following is a table summarising the basic statistics for the unigrams in th
 ```{r, echo=FALSE}
 load("wordstat.RData")
 
+df.charstat$sd <- round(df.charstat$sd,1)
+df.charstat$mean <- round(df.charstat$mean,1)
+
 knitr::kable(df.charstat, col.names = c("total number",
                                         "unique words",
                                         "max length",
                                         "mean",
-                                        "sd"),caption = "Unigram Statistics (including Stop Words")
-```
-
-
-```{r, echo=FALSE}
-load("wordstatSW.RData")
-
-knitr::kable(df.charstatSW, col.names = c("total number",
-                                        "unique words",
-                                        "max length",
-                                        "mean",
-                                        "sd"),caption = "Unigram Statistics (excluding Stop Words")
+                                        "sd"),caption = "Unigram Statistics (including Stop Words)") %>%
+  kable_styling(full_width = F)  %>%
+  column_spec(1, bold = T, border_right = T) %>%
+  column_spec(2, width = "4em") %>%
+  column_spec(3, width = "4em") %>%
+  column_spec(4, width = "4em") %>%
+  column_spec(5, width = "4em") %>%
+  column_spec(6, width = "4em")
 ```
 
 The previous tables indicates some interesting points. First, not considering the stop words (124 words), the number of total words drops of about the $40\%$ indicating that the stop words have all a high frequency rate in the corpus. Second [longest words in English](https://en.wikipedia.org/wiki/Longest_word_in_English) rarerly exceed 25 characters, so the `max length` column suggest to have a further look at the data and eventually prune them
 
-As for the second point, if we have a further look to words whose lenght exceed 20 characters (see Appendix for futher details) we will notice that the frequency is very low and since in the final application I will cut tokens with low frequency, this issue will be solved. Moreover, the data suggest that a further cleaning on the dataset (e.g. removing hashtags in twitter dataset) could improve the working dataset.
+As for the second point, if we have a further look to words whose lenght exceed 20 characters we will notice that the frequency is very low and since in the final application I will cut tokens with low frequency, this issue will be solved. Moreover, the data suggest that a further cleaning on the dataset (e.g. removing hashtags in twitter dataset) could improve the working dataset.
 
-### Word Frequency
+### Unigrams Frequency - Most frequent tokens
 
 The following plot is the word frequency of the top 15 words for the different datasets with and without stop words
 
-```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=12.5, fig.height=5.0}
+
+```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=12.5, fig.height=6.5}
 load("plotuninews.RData")
-load("plotuninewsSW.RData")
-
-patchwork <- pnews + pnewsSW 
-
-patchwork + plot_annotation(
-    title = 'top 15 unigrams for `news` dataset',
-    subtitle = 'Comparison without considering stop words (left) and with (right)',
-)
-```
-
-```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=12.5, fig.height=5.0}
 load("plotuniblogs.RData")
-load("plotuniblogsSW.RData")
-
-patchwork <- pblogs + pblogsSW 
-
-patchwork + plot_annotation(
-    title = 'top 15 unigrams for `blogs` dataset',
-    subtitle = 'Comparison without considering stop words (left) and with (right)',
-)
-```
-
-```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=12.5, fig.height=5.0}
 load("plotunitwitter.RData")
+load("plotunicomplete.RData")
+
+patchwork <- (pnews + pblogs + ptwitter) / (pcomplete) 
+
+patchwork + plot_annotation(
+    title = 'top 15 unigrams',
+    subtitle = 'Most frequent unigrams for the different datasets. Comparison without considering stop words',
+)
+```
+
+
+```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=12.5, fig.height=6.5}
+load("plotuninewsSW.RData")
+load("plotuniblogsSW.RData")
 load("plotunitwitterSW.RData")
+load("plotunicompleteSW.RData")
 
-patchwork <- ptwitter + ptwitterSW 
+patchworkSW <- (pnewsSW + pblogsSW + ptwitterSW) / (pcompleteSW) 
 
-patchwork + plot_annotation(
-    title = 'top 15 unigrams for `twitter` dataset',
-    subtitle = 'Comparison without considering stop words (left) and with (right)',
+patchworkSW + plot_annotation(
+    title = 'top 15 unigrams with Stop Words',
+    subtitle = 'Most frequent unigrams for the different datasets. Comparison considering stop words',
 )
 ```
 
 
-```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=12.5, fig.height=5.0}
-load("plotunicomplete.Rdata")
-load("plotunicompleteSW.Rdata")
+The unigram distribution of the top 15 most frequency it's not really surprising as we would expect the `news` and `blogs` dataset shows some differences but somehow have similar results while the `twitter` dataset is more different. Especially if we look at the distributions without stop words, we can see that a further step in manipulating the data could improve the final application by changing all "im", "youre", "dont" in their correct form "I am", "you are", "do not" (e.g. before removing the "'" symbol. More stemming and lemmatisation).
 
-patchwork <- pcomplete + pcompleteSW 
-
-patchwork + plot_annotation(
-    title = 'top 15 unigrams for `complete` dataset',
-    subtitle = 'Comparison without considering stop words (left) and with (right)',
-)
-```
-
-The unigram distribution of the top 15 most frequency it's not really surprising as we would expect the `news` and `blogs` dataset bringing different somehow similar results while the `twitter` dataset a bit different. Especially if we look at the distributions without stop words, we can see that a further step in manipulating the data could improve the final application by changing all "im", "youre", "dont" in their correct form "I am", "you are", "do not" (e.g. before removing the `'` symbol. More stemming and le).
+### Unigrams Frequency - Less frequent tokens
 
 Beside the top most frequent, it's interesting to have a look at the less frequent words. If we consider the tail 
 
+```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=6.5, fig.height=3.5, fig.align='center'}
+
+load("df_freqpercentuni.RData")
+
+ggplot(df.freqpercentuni, aes(frequency, percentage, color = type)) +
+    geom_point(size = 0.9, aes(shape = type)) +
+    theme_solarized_2(base_size = 12, ) +
+    ggtitle("Unigram Analysis - Percentage of unique words vs word counts")
+```
+
+As we also see in the previous section, words with just one or few occurrences are the large majority of terms in all dataset. The plot also shows that since the `twitter` dataset approaches the $100\%$ of unique words faster than the other dataset, it seems that vocabulary contains less variety of words and a further investigation it's maybe required.
 
 ### Bigrams, Trigrams and Tetragrams analysis
 
 The followings are the plot of 2, 3, and 4-Ngrams
 
-```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=12.5, fig.height=5.0}
+####  Bigrams
+
+```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=13.5, fig.height=6.5}
+load("pbigramsnews.RData")
+load("pbigramsblogs.RData")
+load("pbigramstwitter.RData")
 load("pbigramscomplete.RData")
 load("pbigramscompleteSW.RData")
 
-patchwork_bigrams <- pbigramscomplete + pbigramscompleteSW 
+patchwork_bigrams <- (pbigramsnews + pbigramsblogs + pbigramstwitter) / (pbigramscomplete)
 
 patchwork_bigrams + plot_annotation(
-    title = 'top 15 2-grams for `complete` dataset',
-    subtitle = 'Comparison without considering stop words (left) and with (right)',
+    title = 'top 15 2-grams for the different datasets',
+    subtitle = 'Comparison using all tokens',
 )
 ```
 
 
-```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=12.5, fig.height=5.0}
+```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=13.5, fig.height=6.5}
+load("pbigramsnewsSW.RData")
+load("pbigramsblogsSW.RData")
+load("pbigramstwitterSW.RData")
+load("pbigramscompleteSW.RData")
+
+patchwork_bigrams <- (pbigramsnewsSW + pbigramsblogsSW + pbigramstwitterSW) / (pbigramscompleteSW)
+
+patchwork_bigrams + plot_annotation(
+    title = 'top 15 2-grams for the different datasets with Stop Words',
+    subtitle = 'Comparison considering Stop Words',
+)
+```
+
+The most frequent bigrams looks quite homogeneus between the different datasets. As for unigrams, twitter dataset is slightly different from the other two. That's even more evident by looking at the distribution that eliminates the Stop Words. 
+
+####  Trigrams
+
+```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=13.5, fig.height=6.5}
+load("pnews_trigrams.RData")
+load("pblogs_trigrams.RData")
+load("ptwitter_trigrams.RData")
 load("pcomplete.trigrams.RData")
+
+patchwork_trigrams <- (pnews.trigrams + pblogs.trigrams + ptwitter.trigrams) / (pcomplete.trigrams)
+
+patchwork_trigrams + plot_annotation(
+    title = 'top 15 3-grams for the different datasets',
+    subtitle = 'Comparison without considering stop words',
+)
+```
+
+
+```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=13.5, fig.height=6.5}
+load("pnews_trigramsSW.RData")
+load("pblogs_trigramsSW.RData")
+load("ptwitter_trigramsSW.RData")
 load("pcomplete.trigramsSW.RData")
 
-patchwork_bigrams <- pcomplete.trigrams + pcomplete.trigramsSW 
+patchwork_trigramsSW <- (pnews.trigramsSW + pblogs.trigramsSW + ptwitter.trigramsSW) / (pcomplete.trigramsSW)
 
-patchwork_bigrams + plot_annotation(
-    title = 'top 15 3-grams for `complete` dataset',
-    subtitle = 'Comparison without considering stop words (left) and with (right)',
+patchwork_trigramsSW + plot_annotation(
+    title = 'top 15 3-grams for the different datasets',
+    subtitle = 'Comparison considering stop words',
 )
 ```
 
-```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=12.5, fig.height=5.0}
+Like the most frequent bigrams, also the trigrams show some similarity between news and blogs where twitter dataset brings more colloquial phrase construction.  
+
+#### Tetragrams
+
+
+```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=13.5, fig.height=6.5}
+load("pnews_tetragrams.RData")
+load("pblogs_tetragrams.RData")
+load("ptwitter_tetragrams.RData")
 load("pcomplete.tetragrams.RData")
+
+patchwork_tetragrams <- (pnews.tetragrams + pblogs.tetragrams + ptwitter.tetragrams) / (pcomplete.tetragrams)
+
+patchwork_tetragrams + plot_annotation(
+    title = 'top 15 4-grams for the different datasets',
+    subtitle = 'Comparison without considering stop words',
+)
+```
+
+
+```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=13.5, fig.height=6.5}
+load("pnews_tetragramsSW.RData")
+load("pblogs_tetragramsSW.RData")
+load("ptwitter_tetragramsSW.RData")
 load("pcomplete.tetragramsSW.RData")
 
-patchwork_bigrams <- pcomplete.tetragrams + pcomplete.tetragramsSW 
+patchwork_tetragramsSW <- (pnews.tetragramsSW + pblogs.tetragramsSW + ptwitter.tetragramsSW) / (pcomplete.tetragramsSW)
 
-patchwork_bigrams + plot_annotation(
-    title = 'top 15 4-grams for `complete` dataset',
-    subtitle = 'Comparison without considering stop words (left) and with (right)',
+patchwork_tetragramsSW + plot_annotation(
+    title = 'top 15 4-grams for the different datasets',
+    subtitle = 'Comparison considering stop words',
 )
 ```
 
+What is interesting the the tetragrams analysis is the fact that a part from the most frequent ones, the meaning becomes more confuse with less frequent tokens. Moreover, if we look at the frequency considering stop words, the `news` dataset still have some meaning while `blogs` and `twitter` show that a further text cleaning might help in building the model.
 
-## Further improvement
+####  2-grams, 3-grams, 4-grams less frequent tokens
 
-- Websites references
-- words starting with the same letters (implausable words)
+```{r, echo=FALSE, warning=FALSE, cache=TRUE, fig.width=11.5, fig.height=4.5}
+load("df_freqpercsum.RData")
+library(ggplot2)
+library(ggthemes)
+ggplot(df.freqpercsum, aes(frequency, percentage, color = source)) +
+    geom_point(size = 0.9, aes(shape = source)) +
+    theme_solarized_2(base_size = 12, ) +
+    facet_wrap(~n.grams) +
+    ggtitle("Percentage of unique words vs word counts")
+
+```
+
+As expected, increasing the number of grams considered means that most of the unique tokens (2, 3 and 4-grams) fall into very few occurences. 
+
+## Final remarks and model outline
+
+A possible model for the word predictor application would be based on [Markov chain model](https://en.wikipedia.org/wiki/Markov_chain) in which the probability of the occurence of a word is based on the probability of the ones appearing before the one to be predicted. There are different approaches using N-grams (see chapter 4. of the book [Speech and Language Processing](https://www.cs.colorado.edu/~martin/slp.html)) like dd-k smoothing, Stupid backoff, and Kneser-Ney smoothing that will be evaluated.
+
+This preliminary exploratory data analysis suggests that using the a $2\%$ of sampling text between the different dataset could bring good prediction results while keeping computational time and resources not critical. Moreover, some further effort in cleaning the dataset must be done (e.g. improving eliminating website references, not considering words starting with more than 3 consecutive same letters). One possible improvement could be sampling the different dataset with a different weight since they bring a different type of vocabulary. 
+
 
 # Appendix
 
-
-. If we order it (using the number of characters as variable to order) and store into a data.frame, this would be the `head` and `tail` of the data structure.
-
-```{r, echo=FALSE}
-load("newslongest.RData")
-load("blogslongest.RData")
-load("twitterlongest.Rdata")
-
-knitr::kable(head(df.newslongestwords))
-knitr::kable(head(df.blogslongestwords))
-knitr::kable(head(df.twitterlongestwords))
-```
-
-
-The following is the plot of the top 15 most frequent words (unigrams) in the different datasets. The graphics shows both the word frequency considering Stop Words and without them. If we check
+In the appendix I report the most relevant functions used to create the data structure used in this report. Full code on my [GitHub repository](https://github.com/pacoraggio/textminingExploratoryAnalysis).
 
 ### clean.text function
 
@@ -316,7 +393,112 @@ clean.text <- function(lines)
     lines <- gsub("\\s+", " ", str_trim(lines)) # remove extra whitespaces
     return(lines)
 }
-
 ```
 
+### createSampledDfText function
 
+```{r,eval=FALSE, echo=TRUE}
+createSampledDfText <- function(original, sample.percentage = 0.5, book = "default")
+{
+    set.seed(1)
+    if(!file.exists(original))
+    {
+        print("no file")
+        return(NULL)
+    } 
+    f <- file(original, "rb")
+    original.text <- readLines(f, encoding = "UTF-8", skipNul = TRUE)
+    close(f)
+    n.lines <- sort(sample(1:length(original.text),
+                           as.integer(length(original.text) * sample.percentage),
+                           replace = FALSE))
+    sampled.text <- original.text[n.lines]
+    return(data.frame(doc_id = 1:as.integer(length(original.text) * sample.percentage),
+                      book = book,
+                      text = sampled.text,
+                      stringsAsFactors = FALSE))
+}
+```
+
+### `word.frequency` function
+
+```{r,eval=FALSE, echo=TRUE}
+word.frequency <- function(df.corpus, remove.stopwords = FALSE)
+{
+    custom.stopwords <- data.frame(word = stopwords('english'),
+                                   lexicon = "mylexicon")
+    
+    df.wordfreq <- df.corpus %>%
+        unnest_tokens(word, text) %>%
+        {if(remove.stopwords) anti_join(., y = custom.stopwords) else .} %>%
+        count(word, sort = TRUE) %>%
+        rename(c(frequency = n))
+    
+    return(df.wordfreq)
+}
+```
+
+### `create.bigramsfreq` function
+
+
+```{r,eval=FALSE, echo=TRUE}
+create.bigramsfreq <- function(df.text, remove.stopwords = FALSE)
+{
+    custom.stopwords <- data.frame(word = stopwords('english'),
+                                   lexicon = "mylexicon")
+    
+    bigrams <- df.text %>%
+        unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
+        drop_na() %>%
+        separate(bigram, c("word1","word2")) %>%
+        {if(remove.stopwords)
+            filter(.,!word1 %in% custom.stopwords$word,
+                   !word2 %in% custom.stopwords$word) else .} %>%
+        count(word1, word2, sort = TRUE) %>%
+        unite(bigram, word1, word2, sep = " ")
+}
+```
+
+### `create.trigramsfreq` function
+
+
+```{r,eval=FALSE, echo=TRUE}
+create.trigramsfreq <- function(df.text, remove.stopwords = FALSE)
+{
+    custom.stopwords <- data.frame(word = stopwords('english'),
+                                   lexicon = "mylexicon")
+    
+        trigrams <- df.text %>%
+            unnest_tokens(trigram, text, token = "ngrams", n = 3) %>%
+            drop_na() %>%
+            separate(trigram, c("word1","word2","word3")) %>%
+            {if(remove.stopwords)
+                filter(.,!word1 %in% custom.stopwords$word,
+                       !word2 %in% custom.stopwords$word,
+                       !word3 %in% custom.stopwords$word) else .} %>%
+            count(word1, word2, word3, sort = TRUE) %>%
+            unite(trigram, word1, word2, word3, sep = " ")
+}
+```
+
+### `create.tetragramsfreq` function
+
+```{r,eval=FALSE, echo=TRUE}
+create.tetragramsfreq <- function(df.text, remove.stopwords = FALSE)
+{
+    custom.stopwords <- data.frame(word = stopwords('english'),
+                                   lexicon = "mylexicon")
+    
+    tetrarams <- df.text %>%
+        unnest_tokens(tetragram, text, token = "ngrams", n = 4) %>%
+        drop_na() %>%
+        separate(tetragram, c("word1","word2","word3","word4")) %>%
+        {if(remove.stopwords)
+            filter(.,!word1 %in% custom.stopwords$word,
+                   !word2 %in% custom.stopwords$word,
+                   !word3 %in% custom.stopwords$word,
+                   !word4 %in% custom.stopwords$word) else .} %>%
+        count(word1, word2, word3, word4, sort = TRUE) %>%
+        unite(trigram, word1, word2, word3, word4, sep = " ")
+}
+```

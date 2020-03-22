@@ -11,7 +11,6 @@ options(stringsAsFactors = FALSE)
 
 library(dplyr)
 library(tidytext)
-library(janeaustenr)
 library(stringr)
 library(ggplot2)
 library(tictoc)
@@ -75,6 +74,7 @@ save(ptwitter.tetragramsSW, file = "ptwitter_tetragramsSW.RData")
 save(pcomplete.tetragrams, file = "pcomplete.tetragrams.RData")
 save(pcomplete.tetragramsSW, file = "pcomplete.tetragramsSW.RData")
 
+
 windows()
 pnews.tetragrams + pnews.tetragramsSW
 windows()
@@ -84,12 +84,64 @@ ptwitter.tetragrams + ptwitter.tetragramsSW
 windows()
 pcomplete.tetragrams + pcomplete.tetragramsSW
 
-tail(complete.tetragrams[complete.tetragrams$n > 3,])
-nrow(complete.tetragrams)
-nrow(complete.tetragrams[complete.tetragrams$n > 3,])
 
-sum(complete.tetragrams$n)
-sum(complete.tetragrams[complete.tetragrams$n <= 3,]$n)
-tail(complete.tetragrams[complete.tetragrams$n > 3,])
-sum(complete.tetragrams[complete.tetragrams$n > 3,]$n)
-head(complete.tetragrams)
+### tail analysis
+rm(list = ls())
+library(ggplot2)
+
+load("news_tetragrams.RData")
+load("blogs_tetragrams.RData")
+load("twitter_tetragrams.RData")
+load("complete_tetragrams.RData")
+
+news.percenttetragrams <- c()
+blogs.percenttetragrams <- c()
+twitter.percenttetragrams <- c()
+complete.percenttetragrams <- c()
+
+k1 <- 1:30
+
+for(i in k1)
+{
+    news.percenttetragrams <- c(news.percenttetragrams,
+                             nrow(news.tetragrams[news.tetragrams$n <= i,])/nrow(news.tetragrams))
+    blogs.percenttetragrams <- c(blogs.percenttetragrams,
+                              nrow(blogs.tetragrams[blogs.tetragrams$n <= i,])/nrow(blogs.tetragrams))
+    twitter.percenttetragrams <- c(twitter.percenttetragrams,
+                                nrow(twitter.tetragrams[twitter.tetragrams$n <= i,])/nrow(twitter.tetragrams))
+    complete.percenttetragrams <- c(complete.percenttetragrams,
+                                 nrow(complete.tetragrams[complete.tetragrams$n <= i,])/nrow(complete.tetragrams))
+}
+
+
+df.newsfreqpercenttetra <- data.frame(frequency = k1,
+                                 percentage = news.percenttetragrams,
+                                 type = rep("news 4-grams", length(k1)))
+df.blogsfreqpercenttetra <- data.frame(frequency = k1,
+                                  percentage = blogs.percenttetragrams,
+                                  type = rep("blogs 4-grams", length(k1)))
+df.twitterfreqpercenttetra <- data.frame(frequency = k1,
+                                    percentage = twitter.percenttetragrams,
+                                    type = rep("twitter 4-grams", length(k1)))
+df.completefreqpercenttetra <- data.frame(frequency = k1,
+                                     percentage = complete.percenttetragrams,
+                                     type = rep("complete 4-grams", length(k1)))
+
+df.freqpercenttetra <-rbind(df.newsfreqpercenttetra,
+                       df.blogsfreqpercenttetra,
+                       df.twitterfreqpercenttetra,
+                       df.completefreqpercenttetra)
+
+df.freqpercenttetra$type = factor(df.freqpercenttetra$type, levels = c("news 4-grams",
+                                                                   "blogs 4-grams",
+                                                                   "twitter 4-grams", 
+                                                                   "complete 4-grams"))
+
+library(ggthemes)
+windows()
+p.freqpercenttetra <- ggplot(df.freqpercenttetra, aes(frequency, percentage, color = type)) +
+    geom_point(size = 0.8) +
+    theme_solarized_2(base_size = 12) 
+
+save(df.freqpercenttetra, file = "df_freqpercenttetra.RData")
+save(p.freqpercenttetra, file = "plot_freqpercenttetra.RData")

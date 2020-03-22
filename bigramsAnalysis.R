@@ -86,16 +86,112 @@ windows()
 pbigramscomplete + pbigramscompleteSW
 
 ####
+rm(list = ls())
 
 load("news_bigrams.RData")
-load("news_bigramsSW.RData")
 load("blogs_bigrams.RData")
-load("blogs_bigramsSW.RData")
 load("twitter_bigrams.RData")
-load("twitter_bigramsSW.RData")
 load("complete_bigrams.RData")
-load("complete_bigramsSW.RData")
 
-tail(complete.bigrams[complete.bigrams$n > 6,])
-tail(twitter.bigrams[twitter.bigrams$n > 2,])
-tail(twitter.bigramsSW[twitter.bigramsSW$n > 2,])
+load("complete_bigramsSW.RData")
+load("news_bigramsSW.RData")
+load("blogs_bigramsSW.RData")
+load("twitter_bigramsSW.RData")
+
+
+head(complete.bigrams[complete.bigrams$n == 1,])
+head(twitter.bigrams[twitter.bigrams$n == 1,])
+head(twitter.bigramsSW[twitter.bigramsSW$n == 1,])
+
+head(news.bigrams, n = 11)
+nrow(news.bigrams[news.bigrams$n == 1,])/nrow(news.bigrams)
+nrow(blogs.bigrams[blogs.bigrams$n == 1,])/nrow(blogs.bigrams)
+nrow(twitter.bigrams[twitter.bigrams$n == 1,])/nrow(twitter.bigrams)
+nrow(complete.bigrams[complete.bigrams$n == 1,])/nrow(complete.bigrams)
+
+nrow(news.bigrams[news.bigrams$n <= 2,])/nrow(news.bigrams)
+nrow(blogs.bigrams[blogs.bigrams$n <= 2,])/nrow(blogs.bigrams)
+nrow(twitter.bigrams[twitter.bigrams$n <= 2,])/nrow(twitter.bigrams)
+nrow(complete.bigrams[complete.bigrams$n <= 2,])/nrow(complete.bigrams)
+
+nrow(news.bigrams[news.bigrams$n <= 3,])/nrow(news.bigrams)
+nrow(blogs.bigrams[blogs.bigrams$n <= 3,])/nrow(blogs.bigrams)
+nrow(twitter.bigrams[twitter.bigrams$n <= 3,])/nrow(twitter.bigrams)
+nrow(complete.bigrams[complete.bigrams$n <= 3,])/nrow(complete.bigrams)
+
+nrow(news.bigrams[news.bigrams$n <= 4,])/nrow(news.bigrams)
+nrow(blogs.bigrams[blogs.bigrams$n <= 4,])/nrow(blogs.bigrams)
+nrow(twitter.bigrams[twitter.bigrams$n <= 4,])/nrow(twitter.bigrams)
+nrow(complete.bigrams[complete.bigrams$n <= 4,])/nrow(complete.bigrams)
+
+news.percentbigrams <- c()
+blogs.percentbigrams <- c()
+twitter.percentbigrams <- c()
+complete.percentbigrams <- c()
+
+k1 <- 1:30
+
+for(i in k1)
+{
+    news.percentbigrams <- c(news.percentbigrams,
+                             nrow(news.bigrams[news.bigrams$n <= i,])/nrow(news.bigrams))
+    blogs.percentbigrams <- c(blogs.percentbigrams,
+                             nrow(blogs.bigrams[blogs.bigrams$n <= i,])/nrow(blogs.bigrams))
+    twitter.percentbigrams <- c(twitter.percentbigrams,
+                             nrow(twitter.bigrams[twitter.bigrams$n <= i,])/nrow(twitter.bigrams))
+    complete.percentbigrams <- c(complete.percentbigrams,
+                             nrow(complete.bigrams[complete.bigrams$n <= i,])/nrow(complete.bigrams))
+}
+
+length(news.percentbigrams)
+
+df.newsfreqpercentbi <- data.frame(frequency = k1,
+                                    percentage = news.percentbigrams,
+                                    type = rep("news 2-grams", length(k1)))
+df.blogsfreqpercentbi <- data.frame(frequency = k1,
+                                 percentage = blogs.percentbigrams,
+                                 type = rep("blogs 2-grams", length(k1)))
+df.twitterfreqpercentbi <- data.frame(frequency = k1,
+                                 percentage = twitter.percentbigrams,
+                                 type = rep("twitter 2-grams", length(k1)))
+df.completefreqpercentbi <- data.frame(frequency = k1,
+                                 percentage = complete.percentbigrams,
+                                 type = rep("complete 2-grams", length(k1)))
+
+df.freqpercentbi <-rbind(df.newsfreqpercentbi,
+                       df.blogsfreqpercentbi,
+                       df.twitterfreqpercentbi,
+                       df.completefreqpercentbi)
+
+# library(ggplot2)
+unique(df.freqpercentbi$type)
+df.freqpercentbi$type = factor(df.freqpercentbi$type, levels = c("news 2-grams",
+                                                               "blogs 2-grams",
+                                                               "twitter 2-grams", 
+                                                               "complete 2-grams"))
+
+windows()
+p.freqpercentbi <- ggplot(df.freqpercentbi, aes(frequency, percentage, color = type)) +
+    geom_point(size = 0.8) + 
+    theme_solarized_2(base_size = 12) 
+
+save(df.freqpercentbi, file = "df_freqpercentbi.RData")
+save(p.freqpercentbi, file = "plot_freqpercentbi.RData")
+    # facet_wrap(~type)
+    # facet_grid(~type)
+
+windows()
+ggplot(df.completefreqpercentbi, aes(x = frequency, y = percentage)) +
+    geom_point() + 
+    facet_grid()
+    
+
+## bigrams max length
+names(complete.bigrams)
+max(nchar(complete.bigrams$bigram))
+nrow(complete.bigrams)
+
+nrow(complete.bigrams[nchar(complete.bigrams$bigram) > 40,])
+a1 <- complete.bigrams[nchar(complete.bigrams$bigram) > 40,]
+a1
+

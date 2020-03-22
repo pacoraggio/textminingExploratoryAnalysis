@@ -11,7 +11,6 @@ options(stringsAsFactors = FALSE)
 
 library(dplyr)
 library(tidytext)
-library(janeaustenr)
 library(stringr)
 library(ggplot2)
 library(tictoc)
@@ -275,3 +274,85 @@ windows()
 ggplot(df.wordlength[688:nrow(df.wordlength),], aes(x = frequency, y = unique.words)) +
     geom_point()
 
+#####################################
+
+rm(list = ls())
+
+library(dplyr)
+library(tidytext)
+library(stringr)
+library(ggplot2)
+library(tictoc)
+library(patchwork)
+
+load("dfnews_wf.RData")
+load("dfblogs_wf.RData")
+load("dftwitter_wf.RData")
+load("dfcomplete_wf.RData")
+
+load("dfnews_wfSW.RData")
+load("dfblogs_wfSW.RData")
+load("dftwitter_wfSW.RData")
+load("dfcomplete_wfSW.RData")
+
+head(df.news_wf)
+
+news.percentwords <- c()
+blogs.percentwords <- c()
+twitter.percentwords <- c()
+complete.percentwords <- c()
+
+k1 <- 1:30
+
+for(i in k1)
+{
+    news.percentwords <- c(news.percentwords,
+                             nrow(df.news_wf[df.news_wf$frequency <= i,])/nrow(df.news_wf))
+    blogs.percentwords <- c(blogs.percentwords,
+                              nrow(df.blogs_wf[df.blogs_wf$frequency <= i,])/nrow(df.blogs_wf))
+    twitter.percentwords <- c(twitter.percentwords,
+                                nrow(df.twitter_wf[df.twitter_wf$frequency <= i,])/nrow(df.twitter_wf))
+    complete.percentwords <- c(complete.percentwords,
+                                 nrow(df.complete_wf[df.complete_wf$frequency <= i,])/nrow(df.complete_wf))
+}
+
+
+length(news.percentwords)
+
+df.newsfreqpercentuni <- data.frame(frequency = k1,
+                                   percentage = news.percentwords,
+                                   type = rep("news 1-grams", length(k1)))
+df.blogsfreqpercentuni <- data.frame(frequency = k1,
+                                    percentage = blogs.percentwords,
+                                    type = rep("blogs 1-grams", length(k1)))
+df.twitterfreqpercentuni <- data.frame(frequency = k1,
+                                      percentage = twitter.percentwords,
+                                      type = rep("twitter 1-grams", length(k1)))
+df.completefreqpercentuni <- data.frame(frequency = k1,
+                                       percentage = complete.percentwords,
+                                       type = rep("complete 1-grams", length(k1)))
+
+df.freqpercentuni <-rbind(df.newsfreqpercentuni,
+                         df.blogsfreqpercentuni,
+                         df.twitterfreqpercentuni,
+                         df.completefreqpercentuni)
+
+# library(ggplot2)
+unique(df.freqpercentuni$type)
+df.freqpercentuni$type = factor(df.freqpercentuni$type, levels = c("news 1-grams",
+                                                                 "blogs 1-grams",
+                                                                 "twitter 1-grams", 
+                                                                 "complete 1-grams"))
+
+# windows()
+# ggplot(df.freqpercsum[df.freqpercsum$source == "news",], aes(frequency, percentage, color = source)) +
+#     geom_point(size = 0.9, aes(shape = source)) +
+#     facet_wrap(~n.grams)
+
+save(df.freqpercentuni, file = "df_freqpercentuni.RData")
+library(ggthemes)
+windows()
+ggplot(df.freqpercentuni, aes(frequency, percentage, color = type)) +
+    geom_point(size = 0.9, aes(shape = type)) +
+    theme_solarized_2(base_size = 12, ) +
+    ggtitle("Unigram Analysis - Percentage of unique words vs word counts")
